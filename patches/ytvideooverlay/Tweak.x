@@ -304,6 +304,11 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
             button.hidden = NO;
             if (tweaksMetadata[name][UpdateImageOnVisibleKey])
                 [button setImage:[self buttonImage:name] forState:UIControlStateNormal];
+            // PATCH: Apply frosted glass early to ensure it's visible
+            YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
+            if (frostedGlassView && button.bounds.size.width > 0) {
+                maybeApplyToView(frostedGlassView, button);
+            }
         }
     }
     // PATCH: Force layout update to ensure proper positioning
@@ -318,6 +323,11 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
             button.hidden = NO;
             if (tweaksMetadata[name][UpdateImageOnVisibleKey])
                 [button setImage:[self buttonImage:name] forState:UIControlStateNormal];
+            // PATCH: Apply frosted glass early to ensure it's visible
+            YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
+            if (frostedGlassView && button.bounds.size.width > 0) {
+                maybeApplyToView(frostedGlassView, button);
+            }
         }
     }
     // PATCH: Force layout update to ensure proper positioning
@@ -336,8 +346,17 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
     %orig;
     CGFloat alpha = visible ? 1 : 0;
     for (NSString *name in bottomButtons) {
-        if (UseBottomButton(name))
-            self.overlayButtons[name].alpha = alpha;
+        if (UseBottomButton(name)) {
+            YTQTMButton *button = self.overlayButtons[name];
+            button.alpha = alpha;
+            // PATCH: Apply frosted glass when becoming visible
+            if (visible) {
+                YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
+                if (frostedGlassView && button.bounds.size.width > 0) {
+                    maybeApplyToView(frostedGlassView, button);
+                }
+            }
+        }
     }
     // PATCH: Force layout update to fix button position after fullscreen state changes
     [self setNeedsLayout];
@@ -346,8 +365,17 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
 - (void)setPeekableViewVisible:(BOOL)visible fullscreenButtonVisibleShouldMatchPeekableView:(BOOL)match {
     %orig;
     for (NSString *name in bottomButtons) {
-        if (UseBottomButton(name))
-            self.overlayButtons[name].alpha = visible ? 1 : 0;
+        if (UseBottomButton(name)) {
+            YTQTMButton *button = self.overlayButtons[name];
+            button.alpha = visible ? 1 : 0;
+            // PATCH: Apply frosted glass when becoming visible
+            if (visible) {
+                YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
+                if (frostedGlassView && button.bounds.size.width > 0) {
+                    maybeApplyToView(frostedGlassView, button);
+                }
+            }
+        }
     }
     // PATCH: Force layout update to fix button position after fullscreen state changes
     [self setNeedsLayout];
@@ -356,8 +384,17 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
 - (void)peekWithShowScrubber:(BOOL)scrubber setControlsAbovePlayerBarVisible:(BOOL)visible {
     %orig;
     for (NSString *name in bottomButtons) {
-        if (UseBottomButton(name))
-            self.overlayButtons[name].alpha = visible ? 1 : 0;
+        if (UseBottomButton(name)) {
+            YTQTMButton *button = self.overlayButtons[name];
+            button.alpha = visible ? 1 : 0;
+            // PATCH: Apply frosted glass when becoming visible
+            if (visible) {
+                YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
+                if (frostedGlassView && button.bounds.size.width > 0) {
+                    maybeApplyToView(frostedGlassView, button);
+                }
+            }
+        }
     }
     // PATCH: Force layout update to fix button position after visibility changes
     [self setNeedsLayout];
@@ -366,46 +403,47 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
 - (void)layoutSubviews {
     %orig;
 
-    // PATCH: Apply frosted glass early, before position calculations
-    // This ensures the frosted glass background is visible even before entering fullscreen
-    for (NSString *name in bottomButtons) {
-        if (UseBottomButton(name)) {
-            YTQTMButton *button = self.overlayButtons[name];
-            YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
-            if (frostedGlassView && button && button.bounds.size.width > 0) {
-                maybeApplyToView(frostedGlassView, button);
-            }
-        }
-    }
-
     CGFloat multiFeedWidth = [self respondsToSelector:@selector(multiFeedElementView)] ? [self multiFeedElementView].frame.size.width : 0;
     YTQTMButton *enter = [self enterFullscreenButton];
     YTQTMButton *exit = [self exitFullscreenButton];
 
-    // PATCH: Use a single reference button approach to fix positioning issues
-    // Prefer enter button, fall back to exit button if enter is not visible
+    // PATCH: Always use both buttons to determine reference frame
+    // This ensures consistent positioning regardless of fullscreen state
     YTQTMButton *referenceButton = nil;
-    if ([enter yt_isVisible]) {
+    CGRect referenceFrame = CGRectZero;
+
+    // Check both buttons and use whichever has a valid frame
+    if (![enter yt_isHidden] && !CGRectIsEmpty(enter.frame) && enter.frame.origin.x > 0) {
         referenceButton = enter;
-    } else if ([exit yt_isVisible]) {
+        referenceFrame = enter.frame;
+    } else if (![exit yt_isHidden] && !CGRectIsEmpty(exit.frame) && exit.frame.origin.x > 0) {
         referenceButton = exit;
+        referenceFrame = exit.frame;
     }
 
-    if (!referenceButton) return;
+    if (!referenceButton || CGRectIsEmpty(referenceFrame)) return;
 
-    CGRect frame = referenceButton.frame;
     CGFloat cornerRadius = referenceButton.layer.cornerRadius;
-    CGFloat fullscreenButtonWidth = frame.size.width;
+    CGFloat fullscreenButtonWidth = referenceFrame.size.width;
     CGFloat fullscreenImageWidth = referenceButton.currentImage.size.width;
 
-    if (CGRectIsEmpty(frame) || frame.origin.x <= 0 || frame.origin.y < -4) return;
+    // Use the reference frame's Y position to maintain alignment
+    CGRect frame = referenceFrame;
     CGFloat gap = fullscreenButtonWidth > fullscreenImageWidth ? 12 : fullscreenButtonWidth;
     frame.origin.x -= gap + multiFeedWidth + fullscreenButtonWidth;
+
     UIView *peekableView = [self peekableView];
     for (NSString *name in bottomButtons) {
         if (UseBottomButton(name)) {
             YTQTMButton *button = self.overlayButtons[name];
             YTFrostedGlassView *frostedGlassView = self.overlayGlasses[name];
+
+            // PATCH: Ensure button has proper size before applying frosted glass
+            if (button.bounds.size.width == 0) {
+                button.bounds = CGRectMake(0, 0, fullscreenButtonWidth, referenceFrame.size.height);
+            }
+
+            // Handle superview changes for fullscreen transitions
             if (self.layout == 3 && button.superview == self) {
                 [button removeFromSuperview];
                 [frostedGlassView removeFromSuperview];
@@ -416,11 +454,14 @@ static void sortButtons(NSMutableArray <NSString *> *buttons) {
                 [frostedGlassView removeFromSuperview];
                 [self addSubview:button];
             }
+
+            // PATCH: Always apply frosted glass to ensure visibility
             button.layer.cornerRadius = cornerRadius;
-            // PATCH: Apply frosted glass again after superview changes
             if (frostedGlassView) {
                 maybeApplyToView(frostedGlassView, button);
             }
+
+            // Set the final frame position
             button.frame = frame;
             frame.origin.x -= frame.size.width + gap;
             if (frame.origin.x < 0) frame.origin.x = 0;

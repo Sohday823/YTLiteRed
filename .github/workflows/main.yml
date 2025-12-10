@@ -150,6 +150,11 @@ jobs:
           deb_url="https://github.com/dayanch96/YTLite/releases/download/v${{ inputs.tweak_version }}/com.dvntm.ytlite_${{ inputs.tweak_version }}_iphoneos-arm.deb"
           wget "$deb_url" --no-verbose -O ${{ github.workspace }}/ytplus.deb
 
+      - name: Apply YouTube Plus patches
+        run: |
+          echo "Applying custom patches to YouTube Plus..."
+          bash main/patches/ytlite/apply_ytlite_patch.sh ${{ github.workspace }}/ytplus.deb
+
       - name: Clone Open in YouTube (Safari extension)
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/CokePokes/YoutubeExtensions/

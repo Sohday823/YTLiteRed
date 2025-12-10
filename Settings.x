@@ -243,6 +243,7 @@ static NSString *GetCacheSize() {
                 [self switchWithTitle:@"AutoSkipShorts" key:@"autoSkipShorts"],
                 [self switchWithTitle:@"HideShorts" key:@"hideShorts"],
                 [self switchWithTitle:@"ShortsProgress" key:@"shortsProgress"],
+                [self switchWithTitle:@"SpeedByLongTap" key:@"speedByLongTap"],
                 [self switchWithTitle:@"PinchToFullscreenShorts" key:@"pinchToFullscreenShorts"],
                 [self switchWithTitle:@"ShortsToRegular" key:@"shortsToRegular"],
                 [self switchWithTitle:@"ResumeShorts" key:@"resumeShorts"],
@@ -271,6 +272,36 @@ static NSString *GetCacheSize() {
         }];
 
         [sectionItems addObject:shorts];
+
+        // Speed Location picker for Shorts (only show if SpeedByLongTap is enabled)
+        if (ytlBool(@"speedByLongTap")) {
+            YTSettingsSectionItem *speedLocation = [YTSettingsSectionItemClass itemWithTitle:LOC(@"SpeedLocation")
+            accessibilityIdentifier:@"YTLiteSectionItem"
+            detailTextBlock:^NSString *() {
+                NSArray *locationLabels = @[LOC(@"LeftSide"), LOC(@"RightSide"), LOC(@"BothSides")];
+                return locationLabels[ytlInt(@"speedLocationIndex")];
+            }
+            selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                NSMutableArray <YTSettingsSectionItem *> *rows = [NSMutableArray array];
+                NSArray *locationLabels = @[LOC(@"LeftSide"), LOC(@"RightSide"), LOC(@"BothSides")];
+
+                for (NSUInteger i = 0; i < locationLabels.count; i++) {
+                    NSString *title = locationLabels[i];
+                    YTSettingsSectionItem *item = [YTSettingsSectionItemClass checkmarkItemWithTitle:title titleDescription:nil selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                        [settingsViewController reloadData];
+                        ytlSetInt((int)arg1, @"speedLocationIndex");
+                        return YES;
+                    }];
+                    [rows addObject:item];
+                }
+
+                YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"SpeedLocation") pickerSectionTitle:nil rows:rows selectedItemIndex:ytlInt(@"speedLocationIndex") parentResponder:[self parentResponder]];
+                [settingsViewController pushViewController:picker];
+                return YES;
+            }];
+
+            [sectionItems addObject:speedLocation];
+        }
     }
 
     YTSettingsSectionItem *tabbar = [YTSettingsSectionItemClass itemWithTitle:LOC(@"Tabbar")
@@ -334,6 +365,36 @@ static NSString *GetCacheSize() {
         }];
 
         [sectionItems addObject:other];
+
+        // Download button placement picker
+        YTSettingsSectionItem *buttonPosition = [YTSettingsSectionItemClass itemWithTitle:LOC(@"YtlButtonPosition")
+        accessibilityIdentifier:@"YTLiteSectionItem"
+        detailTextBlock:^NSString *() {
+            NSArray *positionLabels = @[LOC(@"UnderPlayer"), LOC(@"Overlay"), LOC(@"NewButton")];
+            return positionLabels[ytlInt(@"buttonPositionIndex")];
+        }
+        selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+            NSMutableArray <YTSettingsSectionItem *> *rows = [NSMutableArray array];
+            NSArray *positionLabels = @[LOC(@"UnderPlayer"), LOC(@"Overlay"), LOC(@"NewButton")];
+            NSArray *positionDescs = @[@"", @"", LOC(@"NewButtonDesc")];
+
+            for (NSUInteger i = 0; i < positionLabels.count; i++) {
+                NSString *title = positionLabels[i];
+                NSString *desc = positionDescs[i];
+                YTSettingsSectionItem *item = [YTSettingsSectionItemClass checkmarkItemWithTitle:title titleDescription:desc.length > 0 ? desc : nil selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                    [settingsViewController reloadData];
+                    ytlSetInt((int)arg1, @"buttonPositionIndex");
+                    return YES;
+                }];
+                [rows addObject:item];
+            }
+
+            YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"YtlButtonPosition") pickerSectionTitle:nil rows:rows selectedItemIndex:ytlInt(@"buttonPositionIndex") parentResponder:[self parentResponder]];
+            [settingsViewController pushViewController:picker];
+            return YES;
+        }];
+
+        [sectionItems addObject:buttonPosition];
 
         [sectionItems addObject:space];
 

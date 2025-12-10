@@ -689,7 +689,14 @@ static BOOL findCell(ASNodeController *nodeController, NSArray <NSString *> *ide
             return CGSizeZero;
         }
 
+        // Handle download button based on position setting
+        // 0 = UnderPlayer, 1 = Overlay, 2 = NewButton (Save button)
+        int buttonPosition = ytlInt(@"downloadButtonPosition");
         if (ytlBool(@"noPlayerDownloadButton") && findCell(nodeController, @[@"id.ui.add_to.offline.button"])) {
+            return CGSizeZero;
+        }
+        // For Overlay position (1), hide the button under player
+        if (buttonPosition == 1 && findCell(nodeController, @[@"id.ui.add_to.offline.button"])) {
             return CGSizeZero;
         }
     }
@@ -844,6 +851,14 @@ static BOOL isOverlayShown = YES;
 
         [self addGestureRecognizer:longPressGesture];
     }
+
+    if (ytlBool(@"speedByLongTap")) {
+        UILongPressGestureRecognizer *speedUpGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleShortsSpeedUp:)];
+        speedUpGesture.minimumPressDuration = 0.3;
+        speedUpGesture.numberOfTouchesRequired = 1;
+
+        [self addGestureRecognizer:speedUpGesture];
+    }
 }
 
 %new
@@ -856,6 +871,52 @@ static BOOL isOverlayShown = YES;
         UIWindow *mainWindow = [[[UIApplication sharedApplication] delegate] window];
         YTAppViewController *appVC = (YTAppViewController *)mainWindow.rootViewController;
         [appVC performSelector:@selector(showPivotBar) withObject:nil afterDelay:1.0];
+    }
+}
+
+%new
+- (void)handleShortsSpeedUp:(UILongPressGestureRecognizer *)gesture {
+    static CGFloat originalRate = 1.0;
+
+    CGPoint location = [gesture locationInView:self];
+    CGFloat screenWidth = self.bounds.size.width;
+    CGFloat tapX = location.x;
+
+    int speedLocation = ytlInt(@"shortsSpeedLocation");
+    BOOL shouldActivate = NO;
+
+    // 0 = Left side, 1 = Right side, 2 = Both sides
+    if (speedLocation == 0) {
+        // Left side only (left third of screen)
+        shouldActivate = tapX < screenWidth / 3.0;
+    } else if (speedLocation == 1) {
+        // Right side only (right third of screen)
+        shouldActivate = tapX > (screenWidth * 2.0 / 3.0);
+    } else {
+        // Both sides (left and right thirds)
+        shouldActivate = (tapX < screenWidth / 3.0) || (tapX > (screenWidth * 2.0 / 3.0));
+    }
+
+    if (!shouldActivate) return;
+
+    // Get the player
+    YTPlayerViewController *playerVC = nil;
+    UIResponder *responder = self.nextResponder;
+    while (responder) {
+        if ([responder isKindOfClass:%c(YTPlayerViewController)]) {
+            playerVC = (YTPlayerViewController *)responder;
+            break;
+        }
+        responder = responder.nextResponder;
+    }
+
+    if (!playerVC) return;
+
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        originalRate = [playerVC playbackRate];
+        [playerVC setPlaybackRate:2.0];
+    } else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+        [playerVC setPlaybackRate:originalRate];
     }
 }
 %end

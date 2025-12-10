@@ -15,7 +15,8 @@
 "YtlButtonPosition" = "مكان زر الحفظ";
 "UnderPlayer" = "أسفل المشغل";
 "Overlay" = "المشغل";
-"Both" = "كلاهما";
+"SaveButton" = "Save button";
+"SaveButtonDesc" = "Adds a Save button under the video with the download icon";
 
 "PostDownloadAction" = "إجراء ما بعد الحفظ";
 "PostDownloadDesc" = "سيتم تنفيذ الإجراء المحدد عند الانتهاء من الحفظ.";
@@ -260,6 +261,9 @@
 "SpeedByLongTap" = "زيادة سرعة تشغيل الفيديوهات القصيرة بالضغط المطول";
 "SpeedByLongTapDesc" = "يسمح بتسريع التشغيل عن طريق الضغط المطول على جزء معين من الشاشة.";
 "SpeedLocation" = "موقع التنشيط";
+"LeftSide" = "Left side";
+"RightSide" = "Right side";
+"BothSides" = "Both sides";
 "PinchToFullscreenShorts" = "تكبير إلى ملء الشاشة";
 "PinchToFullscreenShortsDesc" = "يدير ظهور مشغل الفديو بإيماءات التكبير والتصغير، لعرض الفيديوهات القصيرة (Shorts) في وضع ملء الشاشة.";
 "ShortsToRegular" = "الفيديوهات القصيرة إلى الفيديوهات العادية";

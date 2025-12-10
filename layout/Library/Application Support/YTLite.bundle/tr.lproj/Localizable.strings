@@ -15,7 +15,8 @@
 "YtlButtonPosition" = "İndirme düğmesi yerleşimi";
 "UnderPlayer" = "Oynatıcının altında";
 "Overlay" = "Kaplama üzerinde";
-"Both" = "Her ikisi de";
+"SaveButton" = "Save button";
+"SaveButtonDesc" = "Adds a Save button under the video with the download icon";
 
 "PostDownloadAction" = "İndirme sonrası eylem";
 "PostDownloadDesc" = "Seçilen eylem, video indirme işlemi başarılı bir şekilde tamamlandığında gerçekleştirilecektir.";
@@ -260,6 +261,9 @@
 "SpeedByLongTap" = "Shorts oynatma hızını artır";
 "SpeedByLongTapDesc" = "Ekranın belirli bir kısmına uzun süre basarak oynatma hızını artırmanıza olanak tanır.";
 "SpeedLocation" = "Etkinleştirme konumu";
+"LeftSide" = "Left side";
+"RightSide" = "Right side";
+"BothSides" = "Both sides";
 "PinchToFullscreenShorts" = "Tam ekran için sıkıştır";
 "PinchToFullscreenShortsDesc" = "Sıkıştırma hareketleriyle üst bilgi görünürlüğünü yönetir, Shorts'u tam ekran modunda görüntüler.";
 "ShortsToRegular" = "Shorts'u normal videolar olarak aç";

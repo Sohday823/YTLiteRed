@@ -1815,6 +1815,191 @@ static NSMutableDictionary <NSString *, YTQTMButton *> *createOverlayButtons(BOO
 // End YTVideoOverlay + YouTimeStamp Integration
 // ============================================================================
 
+// ============================================================================
+// Save Button Under Video (New Button option for download placement)
+// When buttonPositionIndex == 2 (SaveButton), add a Save button under the video
+// ============================================================================
+
+static NSInteger kSaveButtonTag = 99887;
+
+%hook YTSlimVideoScrollableActionBarCellController
+
+- (void)updateCell {
+    %orig;
+
+    // buttonPositionIndex: 0 = Under Player, 1 = Overlay, 2 = Save Button
+    if (ytlInt(@"buttonPositionIndex") == 2) {
+        // Add Save button after cell updates
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIView *containerView = [self valueForKey:@"_containerView"];
+            if (!containerView) return;
+
+            // Check if we already added the save button
+            if ([containerView viewWithTag:kSaveButtonTag]) return;
+
+            // Find the action bar scroll view
+            for (UIView *subview in containerView.subviews) {
+                if ([subview isKindOfClass:[UIScrollView class]]) {
+                    UIScrollView *scrollView = (UIScrollView *)subview;
+
+                    // Create Save button
+                    YTQTMButton *saveButton = [%c(YTQTMButton) iconButton];
+                    saveButton.tag = kSaveButtonTag;
+
+                    // Use download icon
+                    UIImage *downloadIcon = YTImageNamed(@"yt_outline_download_arrow_24pt");
+                    if (!downloadIcon) {
+                        downloadIcon = [UIImage systemImageNamed:@"arrow.down.to.line"];
+                    }
+                    [saveButton setImage:downloadIcon forState:UIControlStateNormal];
+                    saveButton.tintColor = [UIColor labelColor];
+
+                    // Set title
+                    [saveButton setTitle:LOC(@"Save") forState:UIControlStateNormal];
+                    saveButton.titleLabel.font = [UIFont systemFontOfSize:12 weight:UIFontWeightMedium];
+                    [saveButton setTitleColor:[UIColor labelColor] forState:UIControlStateNormal];
+
+                    // Configure button layout
+                    saveButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentCenter;
+                    saveButton.titleEdgeInsets = UIEdgeInsetsMake(24, -24, 0, 0);
+                    saveButton.imageEdgeInsets = UIEdgeInsetsMake(-8, 12, 8, 0);
+
+                    // Size the button
+                    saveButton.frame = CGRectMake(8, 0, 64, 64);
+
+                    // Add target action
+                    [saveButton addTarget:self action:@selector(ytlred_saveButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
+
+                    // Add to scroll view at the beginning
+                    [scrollView addSubview:saveButton];
+
+                    // Adjust content inset to make room
+                    UIEdgeInsets insets = scrollView.contentInset;
+                    insets.left += 72;
+                    scrollView.contentInset = insets;
+
+                    break;
+                }
+            }
+        });
+    }
+}
+
+%new
+- (void)ytlred_saveButtonPressed:(YTQTMButton *)sender {
+    // Show download action toast
+    [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"DownloadVideo") firstResponder:sender] send];
+}
+
+%end
+
+// ============================================================================
+// Shorts Speed Up by Long Press (Left/Right/Both sides)
+// speedLocationIndex: 0 = Left, 1 = Right, 2 = Both
+// ============================================================================
+
+static CGFloat shortsOriginalRate = 1.0;
+static BOOL shortsSpeedActive = NO;
+
+%hook YTReelContentView
+
+- (void)layoutSubviews {
+    %orig;
+
+    // Only add gesture if speed feature is enabled
+    if (ytlBool(@"speedByLongTap")) {
+        // Check if we already added the gesture
+        BOOL hasGesture = NO;
+        for (UIGestureRecognizer *gesture in self.gestureRecognizers) {
+            if (gesture.view.tag == 99886) {
+                hasGesture = YES;
+                break;
+            }
+        }
+
+        if (!hasGesture) {
+            self.tag = 99886;
+            UILongPressGestureRecognizer *speedGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(ytlred_handleShortsSpeed:)];
+            speedGesture.minimumPressDuration = 0.3;
+            [self addGestureRecognizer:speedGesture];
+        }
+    }
+}
+
+%new
+- (void)ytlred_handleShortsSpeed:(UILongPressGestureRecognizer *)gesture {
+    // Get the touch point
+    CGPoint location = [gesture locationInView:self];
+    CGFloat screenWidth = self.bounds.size.width;
+
+    // speedLocationIndex: 0 = Left, 1 = Right, 2 = Both
+    NSInteger speedLocation = ytlInt(@"speedLocationIndex");
+
+    BOOL isOnLeftSide = location.x < screenWidth / 2.0;
+    BOOL isOnRightSide = location.x >= screenWidth / 2.0;
+
+    BOOL shouldActivate = NO;
+    switch (speedLocation) {
+        case 0: // Left side only
+            shouldActivate = isOnLeftSide;
+            break;
+        case 1: // Right side only
+            shouldActivate = isOnRightSide;
+            break;
+        case 2: // Both sides
+            shouldActivate = YES;
+            break;
+        default:
+            shouldActivate = isOnLeftSide;
+            break;
+    }
+
+    if (!shouldActivate) return;
+
+    // Find the player view controller
+    YTReelPlayerViewController *reelPlayerVC = nil;
+    UIResponder *responder = self;
+    while (responder) {
+        if ([responder isKindOfClass:%c(YTReelPlayerViewController)] ||
+            [responder isKindOfClass:%c(YTShortsPlayerViewController)]) {
+            reelPlayerVC = (YTReelPlayerViewController *)responder;
+            break;
+        }
+        responder = [responder nextResponder];
+    }
+
+    if (!reelPlayerVC || !reelPlayerVC.player) return;
+
+    YTPlayerViewController *playerVC = reelPlayerVC.player;
+
+    // Get target speed from speedIndex setting
+    NSArray *speedLabels = @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
+    CGFloat targetSpeed = [speedLabels[ytlInt(@"speedIndex")] floatValue];
+    if (targetSpeed == 0) targetSpeed = 2.0; // Default to 2x if disabled
+
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        shortsOriginalRate = playerVC.activeVideo.playbackRate;
+        shortsSpeedActive = YES;
+        [playerVC setPlaybackRate:targetSpeed];
+
+        // Show speed indicator
+        NSString *speedText = [NSString stringWithFormat:@"%@: %.2f×", LOC(@"PlaybackSpeed"), targetSpeed];
+        [[%c(YTToastResponderEvent) eventWithMessage:speedText firstResponder:self] send];
+    }
+    else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+        if (shortsSpeedActive) {
+            [playerVC setPlaybackRate:shortsOriginalRate];
+            shortsSpeedActive = NO;
+        }
+    }
+}
+
+%end
+
+// ============================================================================
+// End Save Button and Shorts Speed Features
+// ============================================================================
+
 %ctor {
     // Initialize YouTimeStamp
     tweaksMetadata = [NSMutableDictionary dictionary];

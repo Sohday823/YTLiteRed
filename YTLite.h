@@ -166,6 +166,7 @@
 @interface YTReelContentView : UIView
 @property (nonatomic, assign, readonly) YTReelWatchPlaybackOverlayView *playbackOverlay;
 - (void)turnShortsOnlyModeOff:(UILongPressGestureRecognizer *)gesture;
+- (void)ytlred_handleShortsSpeed:(UILongPressGestureRecognizer *)gesture;
 @end
 
 @interface YTReelPlayerViewController : UIViewController
@@ -347,4 +348,9 @@
 + (instancetype)sheetControllerWithParentResponder:(id)parentResponder forcedSheetStyle:(NSInteger)style;
 + (instancetype)sheetControllerWithMessage:(NSString *)message delegate:(id)delegate parentResponder:(id)parentResponder;
 + (instancetype)sheetControllerWithMessage:(NSString *)message subMessage:(NSString *)subMessage delegate:(id)delegate parentResponder:(id)parentResponder;
+@end
+
+@interface YTSlimVideoScrollableActionBarCellController : NSObject
+- (void)updateCell;
+- (void)ytlred_saveButtonPressed:(YTQTMButton *)sender;
 @end

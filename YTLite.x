@@ -868,6 +868,7 @@ static NSArray *speedmasterLabels(void) {
 static CGFloat shortsHoldSpeed(void) {
     NSArray *labels = speedmasterLabels();
     NSInteger index = ytlInt(@"speedIndex");
+    // Index 0 intentionally disables hold-to-speed
     if (index <= 0 || index >= (NSInteger)labels.count) return 1.0;
     return [labels[index] floatValue];
 }
@@ -877,8 +878,14 @@ static CGFloat shortsCurrentRate(YTShortsPlayerViewController *controller) {
     return video ? video.playbackRate : 1.0;
 }
 
+static NSInteger shortsSpeedLocationIndex(void) {
+    NSInteger location = ytlInt(@"shortsSpeedLocation");
+    if (location < 0 || location > 2) return 0;
+    return location;
+}
+
 static BOOL isShortsLocationAllowed(UILongPressGestureRecognizer *gesture, UIView *view) {
-    NSInteger location = ytlInt(@"shortsSpeedLocation"); // 0: left, 1: right, 2: either
+    NSInteger location = shortsSpeedLocationIndex(); // 0: left, 1: right, 2: either
     if (location == 2) return YES;
     CGPoint point = [gesture locationInView:view];
     BOOL isLeft = point.x < CGRectGetMidX(view.bounds);

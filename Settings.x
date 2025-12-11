@@ -243,7 +243,9 @@ static NSString *GetCacheSize() {
             YTSettingsSectionItem *speedLocation = [YTSettingsSectionItemClass itemWithTitle:LOC(@"SpeedLocation")
                 accessibilityIdentifier:@"YTLiteSectionItem"
                 detailTextBlock:^NSString *() {
-                    return locationLabels[ytlInt(@"shortsSpeedLocation")];
+                    NSInteger index = ytlInt(@"shortsSpeedLocation");
+                    if (index < 0 || index >= (NSInteger)locationLabels.count) index = 0;
+                    return locationLabels[index];
                 }
                 selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
                     NSMutableArray <YTSettingsSectionItem *> *rows = [NSMutableArray array];

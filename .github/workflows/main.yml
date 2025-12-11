@@ -154,10 +154,10 @@ jobs:
           # Install dpkg for macOS (needed for deb extraction/creation)
           brew install dpkg
           
-          # Extract the deb
+          # Extract the deb - data files and control files
           mkdir -p ${{ github.workspace }}/ytplus_extract
           dpkg-deb -x ${{ github.workspace }}/ytplus.deb ${{ github.workspace }}/ytplus_extract
-          dpkg-deb -e ${{ github.workspace }}/ytplus.deb ${{ github.workspace }}/ytplus_control
+          dpkg-deb -e ${{ github.workspace }}/ytplus.deb ${{ github.workspace }}/ytplus_extract/DEBIAN
           
           # Find and update the YTLite.bundle with our customized localizations
           BUNDLE_DIR=$(find ${{ github.workspace }}/ytplus_extract -type d -name "YTLite.bundle" | head -1)
@@ -179,14 +179,14 @@ jobs:
               fi
             done
             
-            # Repack the deb
+            # Repack the deb (DEBIAN dir is now inside ytplus_extract)
             dpkg-deb -b ${{ github.workspace }}/ytplus_extract ${{ github.workspace }}/ytplus.deb
           else
             echo "Warning: Could not find YTLite.bundle in the deb"
           fi
           
           # Cleanup
-          rm -rf ${{ github.workspace }}/ytplus_extract ${{ github.workspace }}/ytplus_control
+          rm -rf ${{ github.workspace }}/ytplus_extract
 
       - name: Clone Open in YouTube (Safari extension)
         run: |

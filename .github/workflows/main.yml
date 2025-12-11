@@ -150,6 +150,40 @@ jobs:
           deb_url="https://github.com/dayanch96/YTLite/releases/download/v${{ inputs.tweak_version }}/com.dvntm.ytlite_${{ inputs.tweak_version }}_iphoneos-arm.deb"
           wget "$deb_url" --no-verbose -O ${{ github.workspace }}/ytplus.deb
 
+      - name: Patch YTLite with custom localizations
+        run: |
+          # Extract the deb
+          mkdir -p ${{ github.workspace }}/ytplus_extract
+          dpkg-deb -x ${{ github.workspace }}/ytplus.deb ${{ github.workspace }}/ytplus_extract
+          dpkg-deb -e ${{ github.workspace }}/ytplus.deb ${{ github.workspace }}/ytplus_control
+          
+          # Find and update the YTLite.bundle with our customized localizations
+          BUNDLE_DIR=$(find ${{ github.workspace }}/ytplus_extract -type d -name "YTLite.bundle" | head -1)
+          if [ -n "$BUNDLE_DIR" ]; then
+            echo "Found YTLite.bundle at: $BUNDLE_DIR"
+            
+            # Copy our customized localization files
+            for lang_dir in main/layout/Library/Application\ Support/YTLite.bundle/*.lproj; do
+              if [ -d "$lang_dir" ]; then
+                lang_name=$(basename "$lang_dir")
+                dest_lang_dir="$BUNDLE_DIR/$lang_name"
+                
+                if [ -d "$dest_lang_dir" ]; then
+                  echo "Updating $lang_name localizations..."
+                  cp -f "$lang_dir/Localizable.strings" "$dest_lang_dir/" 2>/dev/null || true
+                fi
+              fi
+            done
+            
+            # Repack the deb
+            dpkg-deb -b ${{ github.workspace }}/ytplus_extract ${{ github.workspace }}/ytplus.deb
+          else
+            echo "Warning: Could not find YTLite.bundle in the deb"
+          fi
+          
+          # Cleanup
+          rm -rf ${{ github.workspace }}/ytplus_extract ${{ github.workspace }}/ytplus_control
+
       - name: Clone Open in YouTube (Safari extension)
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/CokePokes/YoutubeExtensions/

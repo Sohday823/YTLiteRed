@@ -16,6 +16,8 @@
 "UnderPlayer" = "Under the player";
 "Overlay" = "Overlay";
 "Both" = "Both";
+"NewButton" = "New Button";
+"NewButtonDesc" = "Adds a new 'Save' button under videos without removing YouTube's Download button.";
 
 "PostDownloadAction" = "Post-download action";
 "PostDownloadDesc" = "The selected action will be performed upon successful completion of the video download.";
@@ -260,6 +262,10 @@
 "SpeedByLongTap" = "Increase Shorts playback rate";
 "SpeedByLongTapDesc" = "Allows to speed up playback by long pressing on a certain part of the screen.";
 "SpeedLocation" = "Speed up activation location";
+"SpeedLocationLeft" = "Left";
+"SpeedLocationRight" = "Right";
+"SpeedLocationEither" = "Either";
+"SpeedLocationEitherDesc" = "Hold either the left or right side of the screen to speed up playback.";
 "PinchToFullscreenShorts" = "Pinch to Fullscreen";
 "PinchToFullscreenShortsDesc" = "Manages visibility of the overlay with pinch in and pinch out gestures, displaying Shorts in fullscreen mode.";
 "ShortsToRegular" = "Shorts to regular videos";

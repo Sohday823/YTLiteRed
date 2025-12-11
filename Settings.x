@@ -244,7 +244,7 @@ static NSString *GetCacheSize() {
                 accessibilityIdentifier:@"YTLiteSectionItem"
                 detailTextBlock:^NSString *() {
                     NSInteger index = ytlInt(@"shortsSpeedLocation");
-                    if (index < 0 || index >= (NSInteger)locationLabels.count) index = 0;
+                    if (index < 0 || (NSUInteger)index >= locationLabels.count) index = 0;
                     return locationLabels[index];
                 }
                 selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {

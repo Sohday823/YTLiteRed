@@ -861,12 +861,19 @@ static BOOL isOverlayShown = YES;
 }
 %end
 
+static const CGFloat kSpeedmasterSpeeds[] = {0.0, 2.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0, 4.0, 5.0};
+static const NSUInteger kSpeedmasterSpeedsCount = sizeof(kSpeedmasterSpeeds) / sizeof(CGFloat);
+
 static NSArray *speedmasterLabels(void) {
     static NSArray *labels;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        // Note: indices 1 and 9 both map to 2.0× to mirror the existing speedmaster mapping.
-        labels = @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
+        // Indices 1 and 9 both map to 2.0× to mirror the existing speedmaster mapping.
+        NSMutableArray *mutable = [NSMutableArray arrayWithCapacity:kSpeedmasterSpeedsCount];
+        for (NSUInteger i = 0; i < kSpeedmasterSpeedsCount; i++) {
+            [mutable addObject:@(kSpeedmasterSpeeds[i])];
+        }
+        labels = [mutable copy];
     });
     return labels;
 }
@@ -878,7 +885,8 @@ static const NSInteger kSpeedIndexTwoXOverlay = 9;
 static CGFloat shortsHoldSpeedWithIndex(NSInteger index) {
     NSArray *labels = speedmasterLabels();
     if (index == kSpeedIndexDisabled) return 1.0; // disabled
-    if (index < 0 || index >= (NSInteger)labels.count) return 1.0;
+    NSUInteger count = labels.count;
+    if (index < 0 || (NSUInteger)index >= count) return 1.0;
     return [labels[index] floatValue];
 }
 

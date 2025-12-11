@@ -148,28 +148,29 @@ jobs:
         run: |
           checkout_root="${GITHUB_WORKSPACE}/${CHECKOUT_PATH:-main}"
           ytplus_dir="${checkout_root}/YTLitePlus archive"
+          safe_ytplus_dir="${checkout_root}/YTLitePlus_archive"
           if [ ! -d "$ytplus_dir" ]; then
             echo "::error::YouTube Plus source directory not found at $ytplus_dir"
             exit 1
           fi
-          cd -- "$ytplus_dir"
+          ln -sfn "$ytplus_dir" "$safe_ytplus_dir"
+          cd -- "$safe_ytplus_dir"
           make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }}
           if [ ! -d packages ]; then
             echo "::error::YouTube Plus build output directory missing at $ytplus_dir/packages"
             exit 1
           fi
-          shopt -s nullglob
-          deb_files=(packages/*.deb)
-          shopt -u nullglob
-          if [ "${#deb_files[@]}" -eq 0 ]; then
+          deb_list=$(find packages -maxdepth 1 -type f -name '*.deb' | sort)
+          deb_file=$(echo "$deb_list" | head -n 1)
+          if [ -z "$deb_file" ]; then
             echo "::error::YouTube Plus package was not produced"
             exit 1
           fi
-          if [ "${#deb_files[@]}" -gt 1 ]; then
-            echo "::warning::Multiple YouTube Plus packages found, using ${deb_files[0]}"
+          deb_count=$(echo "$deb_list" | grep -c '.')
+          if [ "$deb_count" -gt 1 ]; then
+            echo "::warning::Multiple YouTube Plus packages found, using $deb_file"
           fi
-          first_deb="${deb_files[0]}"
-          mv "$first_deb" "${{ github.workspace }}/ytplus.deb"
+          mv "$deb_file" "${{ github.workspace }}/ytplus.deb"
         env:
           THEOS: ${{ github.workspace }}/theos
 

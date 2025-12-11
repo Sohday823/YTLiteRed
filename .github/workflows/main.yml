@@ -159,8 +159,12 @@ jobs:
           mkdir data control
           ar -x ${{ github.workspace }}/ytplus.deb
           # Extract payload and control
-          data_tar="$(ls data.tar.* | head -n 1)"
-          control_tar="$(ls control.tar.* | head -n 1)"
+          data_tar="$(find . -maxdepth 1 -name 'data.tar.*' | head -n 1)"
+          control_tar="$(find . -maxdepth 1 -name 'control.tar.*' | head -n 1)"
+          if [[ -z "$data_tar" || -z "$control_tar" ]]; then
+            echo "[ytlite patch] Failed to locate data/control payloads in downloaded deb."
+            exit 1
+          fi
           tar -xf "$data_tar" -C data
           tar -xf "$control_tar" -C control
           cat > patch_strings.py <<'PY'
@@ -168,7 +172,11 @@ import os
 import pathlib
 import plistlib
 
-bundle = pathlib.Path(os.environ["PATCH_ROOT"]) / "Library" / "Application Support" / "YTLite.bundle"
+root = os.environ.get("PATCH_ROOT")
+if not root:
+    raise SystemExit("[ytlite patch] PATCH_ROOT environment variable is missing.")
+
+bundle = pathlib.Path(root) / "Library" / "Application Support" / "YTLite.bundle"
 if not bundle.exists():
     raise SystemExit(f"[ytlite patch] Bundle not found at {bundle}. Ensure the downloaded package layout matches expectations.")
 
@@ -181,7 +189,7 @@ for strings_path in localizations:
         data = plistlib.load(handle)
     if "Both" in data:
         data["Both"] = "New Button"
-    # Add third option label for Shorts speed activation
+    # Add third option label for Shorts speed activation that allows either side
     data.setdefault("LeftRightSide", "Either side")
     with strings_path.open("wb") as handle:
         plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)

@@ -148,7 +148,12 @@ jobs:
         run: |
           cd "${{ github.workspace }}/main/YTLitePlus archive"
           make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }}
-          mv packages/*.deb "${{ github.workspace }}/ytplus.deb"
+          deb_file=$(ls packages/*.deb | head -n 1)
+          if [ -z "$deb_file" ]; then
+            echo "::error::YouTube Plus package was not produced"
+            exit 1
+          fi
+          mv "$deb_file" "${{ github.workspace }}/ytplus.deb"
         env:
           THEOS: ${{ github.workspace }}/theos
 

@@ -862,8 +862,13 @@ static BOOL isOverlayShown = YES;
 %end
 
 static NSArray *speedmasterLabels(void) {
-    // Note: indices 1 and 9 both map to 2.0× to mirror the existing speedmaster mapping.
-    return @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
+    static NSArray *labels;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        // Note: indices 1 and 9 both map to 2.0× to mirror the existing speedmaster mapping.
+        labels = @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
+    });
+    return labels;
 }
 
 static const NSInteger kSpeedIndexDisabled = 0;

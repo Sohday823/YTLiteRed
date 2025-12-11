@@ -253,7 +253,7 @@ static NSString *GetCacheSize() {
                         NSString *title = locationLabels[i];
                         [rows addObject:[YTSettingsSectionItemClass checkmarkItemWithTitle:title titleDescription:nil selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
                             [settingsViewController reloadData];
-                            ytlSetInt((int)arg1, @"shortsSpeedLocation");
+                            ytlSetInt((NSInteger)arg1, @"shortsSpeedLocation");
                             return YES;
                         }]];
                     }

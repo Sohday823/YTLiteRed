@@ -151,6 +151,9 @@ jobs:
 
       - name: Patch YTLite with custom localizations
         run: |
+          # Install dpkg for macOS (needed for deb extraction/creation)
+          brew install dpkg
+          
           # Extract the deb
           mkdir -p ${{ github.workspace }}/ytplus_extract
           dpkg-deb -x ${{ github.workspace }}/ytplus.deb ${{ github.workspace }}/ytplus_extract

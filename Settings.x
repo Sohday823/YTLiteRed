@@ -262,7 +262,12 @@ static NSUInteger ShortsSpeedLocationIndex(NSUInteger count) {
                         }]];
                     }
 
-                    YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"SpeedLocation") pickerSectionTitle:nil rows:rows selectedItemIndex:ytlInt(@"shortsSpeedLocation") parentResponder:[self parentResponder]];
+                    YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc]
+                        initWithNavTitle:LOC(@"SpeedLocation")
+                        pickerSectionTitle:nil
+                        rows:rows
+                        selectedItemIndex:ytlInt(@"shortsSpeedLocation")
+                        parentResponder:[self parentResponder]];
                     [settingsViewController pushViewController:picker];
                     return YES;
                 }];

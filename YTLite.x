@@ -861,7 +861,9 @@ static BOOL isOverlayShown = YES;
 }
 %end
 
-// Indices 1 and 9 intentionally map to 2.0× to mirror the original speedmaster mapping.
+// Indices 1 and 9 intentionally map to 2.0× to mirror the original speedmaster mapping
+// used by the upstream speedmaster implementation. Keeping both preserves compatibility
+// with existing preference values.
 static const CGFloat kSpeedmasterSpeeds[] = {0.0, 2.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0, 4.0, 5.0};
 static const NSUInteger kSpeedmasterSpeedsCount = sizeof(kSpeedmasterSpeeds) / sizeof(CGFloat);
 
@@ -885,10 +887,9 @@ static const NSInteger kSpeedIndexTwoXOverlay = 9;
 
 static CGFloat shortsHoldSpeedWithIndex(NSInteger index) {
     NSArray *labels = speedmasterLabels();
-    if (index < 0) return 1.0;
-    if (index == kSpeedIndexDisabled) return 1.0; // disabled
     NSUInteger count = labels.count;
-    if ((NSUInteger)index >= count) return 1.0;
+    BOOL outOfRange = index < 0 || (NSUInteger)index >= count;
+    if (index == kSpeedIndexDisabled || outOfRange) return 1.0; // disabled or invalid
     return [labels[index] floatValue];
 }
 

@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "Ubicación del botón de descarga";
 "UnderPlayer" = "Debajo del reproductor";
 "Overlay" = "Superposición";
-"Both" = "Ambos";
+"Both" = "New Button";
 
 "PostDownloadAction" = "Acción posterior a la descarga";
 "PostDownloadDesc" = "La acción seleccionada se ejecutará al completar con éxito la descarga del vídeo.";

@@ -146,7 +146,8 @@ jobs:
 
       - name: Build YouTube Plus
         run: |
-          ytplus_dir="${{ github.workspace }}/main/YTLitePlus archive"
+          checkout_root="${GITHUB_WORKSPACE}/main"
+          ytplus_dir="${checkout_root}/YTLitePlus archive"
           if [ ! -d "$ytplus_dir" ]; then
             echo "::error::YouTube Plus source directory not found at $ytplus_dir"
             exit 1
@@ -157,7 +158,7 @@ jobs:
             echo "::error::YouTube Plus build output directory missing at $ytplus_dir/packages"
             exit 1
           fi
-          mapfile -t deb_files < <(find packages -maxdepth 1 -name '*.deb' | sort)
+          deb_files=($(find packages -maxdepth 1 -name '*.deb' | sort))
           if [ "${#deb_files[@]}" -eq 0 ]; then
             echo "::error::YouTube Plus package was not produced"
             exit 1

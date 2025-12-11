@@ -169,10 +169,6 @@ jobs:
             echo "::warning::Multiple YouTube Plus packages found, using ${deb_files[0]}"
           fi
           first_deb="${deb_files[0]}"
-          if [ -z "$first_deb" ]; then
-            echo "::error::YouTube Plus package path could not be determined"
-            exit 1
-          fi
           mv "$first_deb" "${{ github.workspace }}/ytplus.deb"
         env:
           THEOS: ${{ github.workspace }}/theos

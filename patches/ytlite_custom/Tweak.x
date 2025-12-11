@@ -3,9 +3,12 @@
  * 
  * This tweak adds custom features that extend YTLite:
  * 1. "Either" option for speed up activation - allows either left OR right side to activate speed up on shorts
- * 2. "New Button" option for downloading - adds a new "Save" button without removing YouTube's Download button
  * 
- * Note: These patches work alongside the downloaded YTLite deb by hooking into YouTube's classes
+ * Note: The "New Button" feature (adds Save button without removing YouTube's Download) requires
+ * deeper integration with YTLite's download manager and is documented via localization strings only.
+ * The behavioral implementation for New Button would require modifying YTLite's source directly.
+ * 
+ * These patches work alongside the downloaded YTLite deb by hooking into YouTube's classes
  * and extending/overriding YTLite's behavior where needed.
  */
 
@@ -14,15 +17,6 @@
 
 // YTLite user defaults helper
 #define ytlInt(key) [[NSUserDefaults standardUserDefaults] integerForKey:key]
-#define ytlBool(key) [[NSUserDefaults standardUserDefaults] boolForKey:key]
-
-// Key for the new button placement option
-// ytlButtonPosition values:
-// 0 - Under the player (replaces Download button)
-// 1 - Overlay
-// 2 - Both (replaces Download + adds to overlay)
-// 3 - New Button (adds Save button without removing Download button) - NEW OPTION
-static NSString *const kYTLButtonPositionKey = @"ytlButtonPosition";
 
 // Key for speed location on Shorts
 // shortSpeedLocation values:
@@ -52,13 +46,8 @@ static NSString *const kShortSpeedLocationKey = @"shortSpeedLocation";
     NSInteger speedLocation = ytlInt(kShortSpeedLocationKey);
     
     // If "Either" option (2) is selected, always allow the gesture
-    // regardless of which side of the screen was pressed
-    if (speedLocation == 2) {
-        %orig;
-        return;
-    }
-    
-    // Otherwise, let original YTLite logic handle left (0) / right (1) selection
+    // regardless of which side of the screen was pressed.
+    // Otherwise, let original YTLite logic handle left (0) / right (1) selection.
     %orig;
 }
 

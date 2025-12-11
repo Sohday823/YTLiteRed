@@ -153,13 +153,17 @@ jobs:
       - name: Patch YouTube Plus resources
         run: |
           workdir="$(mktemp -d)"
+          cleanup() { rm -rf "$workdir"; }
+          trap cleanup EXIT
           pushd "$workdir"
           mkdir data control
           ar -x ${{ github.workspace }}/ytplus.deb
           # Extract payload and control
-          tar -xf data.tar.* -C data
-          tar -xf control.tar.* -C control
-          PATCH_ROOT="$workdir/data" python <<'PY'
+          data_tar="$(ls data.tar.* | head -n 1)"
+          control_tar="$(ls control.tar.* | head -n 1)"
+          tar -xf "$data_tar" -C data
+          tar -xf "$control_tar" -C control
+          cat > patch_strings.py <<'PY'
 import os
 import pathlib
 import plistlib
@@ -182,11 +186,22 @@ for strings_path in localizations:
     with strings_path.open("wb") as handle:
         plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)
 PY
-          # Repack using gzip tars for compatibility
-          tar -C control -czf control.tar.gz .
-          tar -C data -czf data.tar.gz .
+          PATCH_ROOT="$workdir/data" python patch_strings.py
+          # Repack using original compression type when possible
+          data_ext="${data_tar##*.}"
+          control_ext="${control_tar##*.}"
+          case "$control_ext" in
+            gz) control_file="control.tar.gz"; tar -C control -czf "$control_file" . ;;
+            xz) control_file="control.tar.xz"; tar -C control -cJf "$control_file" . ;;
+            *)  control_file="control.tar"; tar -C control -cf "$control_file" . ;;
+          esac
+          case "$data_ext" in
+            gz) data_file="data.tar.gz"; tar -C data -czf "$data_file" . ;;
+            xz) data_file="data.tar.xz"; tar -C data -cJf "$data_file" . ;;
+            *)  data_file="data.tar"; tar -C data -cf "$data_file" . ;;
+          esac
           echo "2.0" > debian-binary
-          ar -rc ${{ github.workspace }}/ytplus.deb debian-binary control.tar.gz data.tar.gz
+          ar -rc ${{ github.workspace }}/ytplus.deb debian-binary "$control_file" "$data_file"
           popd
 
       - name: Clone Open in YouTube (Safari extension)

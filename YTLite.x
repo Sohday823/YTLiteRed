@@ -801,6 +801,7 @@ static BOOL findCell(ASNodeController *nodeController, NSArray <NSString *> *ide
 %end
 
 static BOOL isOverlayShown = YES;
+static CGFloat shortsSpeedOriginalRate = 1.0;
 
 %hook YTPlayerView
 - (void)didPinch:(UIPinchGestureRecognizer *)gesture {
@@ -886,14 +887,13 @@ static BOOL isOverlayShown = YES;
         YTPlayerViewController *playerVC = [shortsPlayerVC valueForKey:@"_player"];
         
         if (playerVC) {
-            static CGFloat originalRate = 1.0;
             CGFloat speedUpRate = 2.0;  // Default speed up rate
             
             if (gesture.state == UIGestureRecognizerStateBegan) {
-                originalRate = playerVC.playbackRate;
+                shortsSpeedOriginalRate = playerVC.playbackRate;
                 [playerVC setPlaybackRate:speedUpRate];
             } else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
-                [playerVC setPlaybackRate:originalRate];
+                [playerVC setPlaybackRate:shortsSpeedOriginalRate];
             }
         }
     }

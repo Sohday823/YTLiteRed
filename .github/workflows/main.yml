@@ -121,7 +121,7 @@ jobs:
           restore-keys: ${{ env.cache-name }}
 
       - name: Setup Theos
-        if: steps.theos.outputs.cache-hit != 'true'
+        if: ${{ steps.theos.outputs.cache-hit != 'true' }}
         uses: actions/checkout@v4.1.7
         with:
           repository: theos/theos
@@ -130,7 +130,7 @@ jobs:
           submodules: recursive
 
       - name: Download iOS SDK
-        if: steps.theos.outputs.cache-hit != 'true'
+        if: ${{ steps.theos.outputs.cache-hit != 'true' }}
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/theos/sdks/
           cd sdks
@@ -143,11 +143,43 @@ jobs:
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
 
-      - name: Build YouTube Plus
+      - name: Clone YouTubeHeader for YTLite build
         run: |
+          if [ ! -d "$THEOS/include/YouTubeHeader" ]; then
+            echo "YouTubeHeader does not exist. Cloning repository..."
+            cd $THEOS/include
+            git clone --quiet --depth=1 https://github.com/PoomSmart/YouTubeHeader.git
+          fi
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
+      - name: Create roothide.h stub header
+        run: |
+          # Create a stub roothide.h header for non-roothide builds
+          # This provides the jbroot() macro needed by NSBundle+YTLite
+          cat > $THEOS/include/roothide.h << 'EOF'
+          #ifndef ROOTHIDE_H
+          #define ROOTHIDE_H
+
+          // Stub for roothide.h - provides jbroot macro for non-roothide builds
+          // When building without roothide support, jbroot just returns the path as-is
+          #define jbroot(path) (path)
+
+          #endif /* ROOTHIDE_H */
+          EOF
+          echo "Created roothide.h stub header"
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
+      - name: Build YouTube Plus (YTLite) from source with custom patches
+        id: build_ytplus
+        run: |
+          # Build YTLite from the source code in this repo (main/YTLite)
+          # This includes the custom patches for New Button and Both speed option
           cd ${{ github.workspace }}/main
-          make clean package DEBUG=0 FINALPACKAGE=1
+          make clean package DEBUG=0 FINALPACKAGE=1 TWEAK_VERSION=${{ inputs.tweak_version }}
           mv packages/*.deb ${{ github.workspace }}/ytplus.deb
+          echo "Built YouTube Plus with custom patches from source"
         env:
           THEOS: ${{ github.workspace }}/theos
 

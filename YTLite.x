@@ -1,5 +1,4 @@
 #import "YTLite.h"
-#import <objc/runtime.h>
 
 static UIImage *YTImageNamed(NSString *imageName) {
     return [UIImage imageNamed:imageName inBundle:[NSBundle mainBundle] compatibleWithTraitCollection:nil];
@@ -802,6 +801,7 @@ static BOOL findCell(ASNodeController *nodeController, NSArray <NSString *> *ide
 %end
 
 static BOOL isOverlayShown = YES;
+static CGFloat shortsSpeedOriginalRate = 1.0;
 
 %hook YTPlayerView
 - (void)didPinch:(UIPinchGestureRecognizer *)gesture {
@@ -845,6 +845,58 @@ static BOOL isOverlayShown = YES;
 
         [self addGestureRecognizer:longPressGesture];
     }
+
+    // Add Shorts speed up by long tap gesture
+    if (ytlBool(@"shortsSpeedByLongTap")) {
+        UILongPressGestureRecognizer *speedGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleShortsSpeedLongPress:)];
+        speedGesture.minimumPressDuration = 0.3;
+        [self addGestureRecognizer:speedGesture];
+    }
+}
+
+%new
+- (void)handleShortsSpeedLongPress:(UILongPressGestureRecognizer *)gesture {
+    // Get the location setting: 0 = Left, 1 = Right, 2 = Both
+    NSInteger locationIndex = ytlInt(@"shortsSpeedLocationIndex");
+    
+    CGPoint touchPoint = [gesture locationInView:self];
+    CGFloat screenWidth = self.bounds.size.width;
+    BOOL isLeftSide = touchPoint.x < screenWidth / 2;
+    BOOL isRightSide = touchPoint.x >= screenWidth / 2;
+    
+    // Check if the touch location matches the setting
+    BOOL shouldActivate = NO;
+    if (locationIndex == 0 && isLeftSide) {  // Left only
+        shouldActivate = YES;
+    } else if (locationIndex == 1 && isRightSide) {  // Right only
+        shouldActivate = YES;
+    } else if (locationIndex == 2) {  // Both sides
+        shouldActivate = YES;
+    }
+    
+    if (!shouldActivate) return;
+    
+    // Get the player view controller
+    UIViewController *parentVC = self.closestViewController;
+    while (parentVC && ![parentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
+        parentVC = parentVC.parentViewController;
+    }
+    
+    if ([parentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
+        YTShortsPlayerViewController *shortsPlayerVC = (YTShortsPlayerViewController *)parentVC;
+        YTPlayerViewController *playerVC = [shortsPlayerVC valueForKey:@"_player"];
+        
+        if (playerVC) {
+            CGFloat speedUpRate = 2.0;  // Default speed up rate
+            
+            if (gesture.state == UIGestureRecognizerStateBegan) {
+                shortsSpeedOriginalRate = playerVC.playbackRate;
+                [playerVC setPlaybackRate:speedUpRate];
+            } else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+                [playerVC setPlaybackRate:shortsSpeedOriginalRate];
+            }
+        }
+    }
 }
 
 %new
@@ -859,119 +911,6 @@ static BOOL isOverlayShown = YES;
         [appVC performSelector:@selector(showPivotBar) withObject:nil afterDelay:1.0];
     }
 }
-%end
-
-// Indices 1 and 9 intentionally map to 2.0× to mirror the original speedmaster mapping
-// used by the upstream speedmaster implementation. Keeping both preserves compatibility
-// with existing preference values.
-static NSDictionary <NSNumber *, NSNumber *> *speedmasterSpeeds(void) {
-    static NSDictionary *speeds;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        speeds = @{
-            @0: @0.0,
-            @1: @2.0,
-            @2: @0.25,
-            @3: @0.5,
-            @4: @0.75,
-            @5: @1.0,
-            @6: @1.25,
-            @7: @1.5,
-            @8: @1.75,
-            @9: @2.0,
-            @10: @3.0,
-            @11: @4.0,
-            @12: @5.0
-        };
-    });
-    return speeds;
-}
-
-static const NSInteger kSpeedIndexDisabled = 0;
-static const NSInteger kSpeedIndexTwoXPrimary = 1;
-static const NSInteger kSpeedIndexTwoXOverlay = 9;
-
-static CGFloat shortsHoldSpeedWithIndex(NSInteger index) {
-    if (index == kSpeedIndexDisabled) return 1.0; // disabled
-    NSDictionary *speeds = speedmasterSpeeds();
-    NSNumber *value = speeds[@(index)];
-    return value ? value.floatValue : 1.0;
-}
-
-static CGFloat shortsHoldSpeed(void) {
-    return shortsHoldSpeedWithIndex(ytlInt(@"speedIndex"));
-}
-
-static CGFloat shortsCurrentRate(YTShortsPlayerViewController *controller) {
-    YTSingleVideoController *video = controller.player.activeVideo;
-    return video ? video.playbackRate : 1.0;
-}
-
-static const NSInteger kShortsSpeedLocationLeft = 0;
-static const NSInteger kShortsSpeedLocationRight = 1;
-static const NSInteger kShortsSpeedLocationEither = 2;
-
-static NSInteger shortsSpeedLocationIndex(void) {
-    NSInteger location = ytlInt(@"shortsSpeedLocation");
-    if (location < kShortsSpeedLocationLeft || location > kShortsSpeedLocationEither) return kShortsSpeedLocationLeft;
-    return location;
-}
-
-static BOOL isShortsLocationAllowed(UILongPressGestureRecognizer *gesture, UIView *view) {
-    NSInteger location = shortsSpeedLocationIndex(); // 0: left, 1: right, 2: either
-    if (location == kShortsSpeedLocationEither) return YES;
-    CGPoint point = [gesture locationInView:view];
-    BOOL isLeft = point.x < CGRectGetMidX(view.bounds);
-    return location == kShortsSpeedLocationLeft ? isLeft : !isLeft;
-}
-
-static char kShortsSpeedGestureKey;
-static char kShortsSpeedActiveKey;
-static char kShortsSpeedPreviousRateKey;
-static const NSTimeInterval kShortsSpeedLongPressDuration = 0.3;
-
-%hook YTShortsPlayerViewController
-
-- (void)viewDidLoad {
-    %orig;
-
-    if (!ytlBool(@"shortsSpeedByLongPress")) return;
-
-    UILongPressGestureRecognizer *gesture = objc_getAssociatedObject(self, &kShortsSpeedGestureKey);
-    if (!gesture) {
-        gesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(ytl_handleShortsSpeed:)];
-        gesture.minimumPressDuration = kShortsSpeedLongPressDuration;
-        [self.view addGestureRecognizer:gesture];
-        objc_setAssociatedObject(self, &kShortsSpeedGestureKey, gesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-}
-
-%new
-- (void)ytl_handleShortsSpeed:(UILongPressGestureRecognizer *)gesture {
-    if (!ytlBool(@"shortsSpeedByLongPress")) return;
-    if (!isShortsLocationAllowed(gesture, self.view)) return;
-
-    NSInteger speedIndex = ytlInt(@"speedIndex");
-    CGFloat targetRate = shortsHoldSpeedWithIndex(speedIndex);
-    if (speedIndex == kSpeedIndexDisabled) return;
-
-    BOOL isActive = [objc_getAssociatedObject(self, &kShortsSpeedActiveKey) boolValue];
-
-    if (gesture.state == UIGestureRecognizerStateBegan && !isActive) {
-        CGFloat currentRate = shortsCurrentRate(self);
-        objc_setAssociatedObject(self, &kShortsSpeedPreviousRateKey, @(currentRate), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        [self.player setPlaybackRate:targetRate];
-        objc_setAssociatedObject(self, &kShortsSpeedActiveKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-
-    else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
-        NSNumber *previousRate = objc_getAssociatedObject(self, &kShortsSpeedPreviousRateKey);
-        CGFloat rate = previousRate ? previousRate.floatValue : 1.0;
-        [self.player setPlaybackRate:rate];
-        objc_setAssociatedObject(self, &kShortsSpeedActiveKey, @NO, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-}
-
 %end
 
 static void downloadImageFromURL(UIResponder *responder, NSURL *URL, BOOL download) {

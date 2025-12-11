@@ -153,12 +153,16 @@ jobs:
             cd -- "$safe_ytplus_dir"
           elif [ -d "$source_ytplus_dir" ]; then
             ln -sfn "$source_ytplus_dir" "$safe_ytplus_dir"
+            if [ ! -d "$safe_ytplus_dir" ]; then
+              echo "::error::Failed to prepare symlinked YouTube Plus directory at $safe_ytplus_dir"
+              exit 1
+            fi
             cd -- "$safe_ytplus_dir"
           else
             echo "::error::YouTube Plus source directory not found at $source_ytplus_dir"
             exit 1
           fi
-          make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }}
+          make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }} || { echo "::error::YouTube Plus build failed"; exit 1; }
           if [ ! -d packages ]; then
             echo "::error::YouTube Plus build output directory missing at $safe_ytplus_dir/packages"
             exit 1

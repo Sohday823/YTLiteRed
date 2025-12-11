@@ -844,6 +844,59 @@ static BOOL isOverlayShown = YES;
 
         [self addGestureRecognizer:longPressGesture];
     }
+
+    // Add Shorts speed up by long tap gesture
+    if (ytlBool(@"shortsSpeedByLongTap")) {
+        UILongPressGestureRecognizer *speedGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleShortsSpeedLongPress:)];
+        speedGesture.minimumPressDuration = 0.3;
+        [self addGestureRecognizer:speedGesture];
+    }
+}
+
+%new
+- (void)handleShortsSpeedLongPress:(UILongPressGestureRecognizer *)gesture {
+    // Get the location setting: 0 = Left, 1 = Right, 2 = Both
+    NSInteger locationIndex = ytlInt(@"shortsSpeedLocationIndex");
+    
+    CGPoint touchPoint = [gesture locationInView:self];
+    CGFloat screenWidth = self.bounds.size.width;
+    BOOL isLeftSide = touchPoint.x < screenWidth / 2;
+    BOOL isRightSide = touchPoint.x >= screenWidth / 2;
+    
+    // Check if the touch location matches the setting
+    BOOL shouldActivate = NO;
+    if (locationIndex == 0 && isLeftSide) {  // Left only
+        shouldActivate = YES;
+    } else if (locationIndex == 1 && isRightSide) {  // Right only
+        shouldActivate = YES;
+    } else if (locationIndex == 2) {  // Both sides
+        shouldActivate = YES;
+    }
+    
+    if (!shouldActivate) return;
+    
+    // Get the player view controller
+    UIViewController *parentVC = self.closestViewController;
+    while (parentVC && ![parentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
+        parentVC = parentVC.parentViewController;
+    }
+    
+    if ([parentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
+        YTShortsPlayerViewController *shortsPlayerVC = (YTShortsPlayerViewController *)parentVC;
+        YTPlayerViewController *playerVC = [shortsPlayerVC valueForKey:@"_player"];
+        
+        if (playerVC) {
+            static CGFloat originalRate = 1.0;
+            CGFloat speedUpRate = 2.0;  // Default speed up rate
+            
+            if (gesture.state == UIGestureRecognizerStateBegan) {
+                originalRate = playerVC.playbackRate;
+                [playerVC setPlaybackRate:speedUpRate];
+            } else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+                [playerVC setPlaybackRate:originalRate];
+            }
+        }
+    }
 }
 
 %new

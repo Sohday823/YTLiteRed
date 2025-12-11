@@ -1,4 +1,5 @@
 #import "YTLite.h"
+#import <objc/runtime.h>
 
 static UIImage *YTImageNamed(NSString *imageName) {
     return [UIImage imageNamed:imageName inBundle:[NSBundle mainBundle] compatibleWithTraitCollection:nil];
@@ -858,6 +859,75 @@ static BOOL isOverlayShown = YES;
         [appVC performSelector:@selector(showPivotBar) withObject:nil afterDelay:1.0];
     }
 }
+%end
+
+static NSArray *speedmasterLabels(void) {
+    return @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
+}
+
+static CGFloat shortsHoldSpeed(void) {
+    NSArray *labels = speedmasterLabels();
+    NSInteger index = ytlInt(@"speedIndex");
+    if (index <= 0 || index >= (NSInteger)labels.count) return 1.0;
+    return [labels[index] floatValue];
+}
+
+static CGFloat shortsCurrentRate(YTShortsPlayerViewController *controller) {
+    YTSingleVideoController *video = controller.player.activeVideo;
+    return video ? video.playbackRate : 1.0;
+}
+
+static BOOL isShortsLocationAllowed(UILongPressGestureRecognizer *gesture, UIView *view) {
+    NSInteger location = ytlInt(@"shortsSpeedLocation"); // 0: left, 1: right, 2: either
+    if (location == 2) return YES;
+    CGPoint point = [gesture locationInView:view];
+    BOOL isLeft = point.x < CGRectGetMidX(view.bounds);
+    return location == 0 ? isLeft : !isLeft;
+}
+
+static char kShortsSpeedGestureKey;
+static char kShortsSpeedActiveKey;
+static char kShortsSpeedPreviousRateKey;
+
+%hook YTShortsPlayerViewController
+
+- (void)viewDidLoad {
+    %orig;
+
+    if (!ytlBool(@"shortsSpeedByLongPress")) return;
+
+    UILongPressGestureRecognizer *gesture = objc_getAssociatedObject(self, &kShortsSpeedGestureKey);
+    if (!gesture) {
+        gesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(ytl_handleShortsSpeed:)];
+        gesture.minimumPressDuration = 0.3;
+        [self.view addGestureRecognizer:gesture];
+        objc_setAssociatedObject(self, &kShortsSpeedGestureKey, gesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+}
+
+%new
+- (void)ytl_handleShortsSpeed:(UILongPressGestureRecognizer *)gesture {
+    if (!ytlBool(@"shortsSpeedByLongPress")) return;
+    if (ytlInt(@"speedIndex") == 0) return;
+    if (!isShortsLocationAllowed(gesture, self.view)) return;
+
+    BOOL isActive = [objc_getAssociatedObject(self, &kShortsSpeedActiveKey) boolValue];
+
+    if (gesture.state == UIGestureRecognizerStateBegan && !isActive) {
+        CGFloat currentRate = shortsCurrentRate(self);
+        objc_setAssociatedObject(self, &kShortsSpeedPreviousRateKey, @(currentRate), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [self.player setPlaybackRate:shortsHoldSpeed()];
+        objc_setAssociatedObject(self, &kShortsSpeedActiveKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+
+    else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+        NSNumber *previousRate = objc_getAssociatedObject(self, &kShortsSpeedPreviousRateKey);
+        CGFloat rate = previousRate ? previousRate.floatValue : 1.0;
+        [self.player setPlaybackRate:rate];
+        objc_setAssociatedObject(self, &kShortsSpeedActiveKey, @NO, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+}
+
 %end
 
 static void downloadImageFromURL(UIResponder *responder, NSURL *URL, BOOL download) {

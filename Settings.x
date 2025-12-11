@@ -238,9 +238,34 @@ static NSString *GetCacheSize() {
             return @"‣";
         }
         selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+            NSArray *locationLabels = @[LOC(@"LeftSide"), LOC(@"RightSide"), LOC(@"EitherSide")];
+
+            YTSettingsSectionItem *speedLocation = [YTSettingsSectionItemClass itemWithTitle:LOC(@"SpeedLocation")
+                accessibilityIdentifier:@"YTLiteSectionItem"
+                detailTextBlock:^NSString *() {
+                    return locationLabels[ytlInt(@"shortsSpeedLocation")];
+                }
+                selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                    NSMutableArray <YTSettingsSectionItem *> *rows = [NSMutableArray array];
+                    for (NSUInteger i = 0; i < locationLabels.count; i++) {
+                        NSString *title = locationLabels[i];
+                        [rows addObject:[YTSettingsSectionItemClass checkmarkItemWithTitle:title titleDescription:nil selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                            [settingsViewController reloadData];
+                            ytlSetInt((int)arg1, @"shortsSpeedLocation");
+                            return YES;
+                        }]];
+                    }
+
+                    YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"SpeedLocation") pickerSectionTitle:nil rows:rows selectedItemIndex:ytlInt(@"shortsSpeedLocation") parentResponder:[self parentResponder]];
+                    [settingsViewController pushViewController:picker];
+                    return YES;
+                }];
+
             NSArray <YTSettingsSectionItem *> *rows = @[
                 [self switchWithTitle:@"ShortsOnlyMode" key:@"shortsOnlyMode"],
                 [self switchWithTitle:@"AutoSkipShorts" key:@"autoSkipShorts"],
+                [self switchWithTitle:@"SpeedByLongTap" key:@"shortsSpeedByLongPress"],
+                speedLocation,
                 [self switchWithTitle:@"HideShorts" key:@"hideShorts"],
                 [self switchWithTitle:@"ShortsProgress" key:@"shortsProgress"],
                 [self switchWithTitle:@"PinchToFullscreenShorts" key:@"pinchToFullscreenShorts"],

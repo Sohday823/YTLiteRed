@@ -1,0 +1,9 @@
+Package: com.sohday.ytlitecustom
+Name: YTLiteCustom
+Depends: mobilesubstrate, com.dvntm.ytlite
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Custom extensions for YTLite - adds "Either" speed location option and other enhancements
+Maintainer: Sohday823
+Author: Sohday823
+Section: Tweaks

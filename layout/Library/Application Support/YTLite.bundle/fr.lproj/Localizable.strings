@@ -16,6 +16,8 @@
 "UnderPlayer" = "Sous le lecteur";
 "Overlay" = "Overlay";
 "Both" = "Les deux";
+"NewButton" = "Nouveau bouton";
+"NewButtonDesc" = "Ajoute un nouveau bouton \"Enregistrer\" sous les vidéos sans supprimer le bouton Télécharger de YouTube.";
 
 "PostDownloadAction" = "Action post-téléchargement";
 "PostDownloadDesc" = "L'action sélectionnée sera effectuée une fois le téléchargement de la vidéo terminé.";
@@ -260,6 +262,10 @@
 "SpeedByLongTap" = "Augmenter la vitesse de lecture des Shorts";
 "SpeedByLongTapDesc" = "Permet d'accélérer la lecture en appuyant longuement sur une certaine partie de l'écran.";
 "SpeedLocation" = "Emplacement d'activation";
+"SpeedLocationLeft" = "Gauche";
+"SpeedLocationRight" = "Droite";
+"SpeedLocationEither" = "N'importe quel côté";
+"SpeedLocationEitherDesc" = "Maintenez le côté gauche ou droit de l'écran pour accélérer la lecture.";
 "PinchToFullscreenShorts" = "Pincer pour le plein écran";
 "PinchToFullscreenShortsDesc" = "Gère la visibilité de l'overlay avec les gestes de pincement, affichant les Shorts en mode plein écran.";
 "ShortsToRegular" = "Shorts vers vidéos normales";

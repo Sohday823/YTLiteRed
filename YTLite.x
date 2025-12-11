@@ -876,14 +876,33 @@ static CGFloat shortsSpeedOriginalRate = 1.0;
     
     if (!shouldActivate) return;
     
-    // Get the player view controller
-    UIViewController *parentVC = self.closestViewController;
-    while (parentVC && ![parentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
-        parentVC = parentVC.parentViewController;
+    // Get the player view controller using topViewControllerForPresenting
+    UIViewController *topVC = [%c(YTUIUtils) topViewControllerForPresenting];
+    
+    // Find the YTShortsPlayerViewController in the view controller hierarchy
+    UIViewController *shortsPlayerVC = nil;
+    UIViewController *currentVC = topVC;
+    while (currentVC) {
+        if ([currentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
+            shortsPlayerVC = currentVC;
+            break;
+        }
+        currentVC = currentVC.presentingViewController;
+        if (!currentVC) {
+            // Try parent view controller
+            currentVC = topVC.parentViewController;
+            while (currentVC) {
+                if ([currentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
+                    shortsPlayerVC = currentVC;
+                    break;
+                }
+                currentVC = currentVC.parentViewController;
+            }
+            break;
+        }
     }
     
-    if ([parentVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
-        YTShortsPlayerViewController *shortsPlayerVC = (YTShortsPlayerViewController *)parentVC;
+    if ([shortsPlayerVC isKindOfClass:%c(YTShortsPlayerViewController)]) {
         YTPlayerViewController *playerVC = [shortsPlayerVC valueForKey:@"_player"];
         
         if (playerVC) {

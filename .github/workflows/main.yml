@@ -145,25 +145,20 @@ jobs:
 
       - name: Clone YouTubeHeader for YTLite build
         run: |
-          # Clone YouTubeHeader next to main directory for relative import paths
+          # Clone YouTubeHeader next to main directory for relative import paths (../YouTubeHeader/)
           cd ${{ github.workspace }}
-          if [ ! -d "YouTubeHeader" ]; then
-            git clone --quiet --depth=1 https://github.com/PoomSmart/YouTubeHeader.git
-          fi
+          git clone --quiet --depth=1 https://github.com/PoomSmart/YouTubeHeader.git
           # Also copy to THEOS include for other tweaks that need it
-          if [ ! -d "$THEOS/include/YouTubeHeader" ]; then
-            cp -r YouTubeHeader $THEOS/include/
-          fi
+          cp -r YouTubeHeader $THEOS/include/
         env:
           THEOS: ${{ github.workspace }}/theos
 
-      - name: Clone protobuf for YTNativeShare
+      - name: Clone protobuf (v3.21.12) for YTNativeShare
         run: |
-          # Clone protobuf next to main directory for relative import paths used by YTNativeShare.x
+          # Clone protobuf v3.21.12 next to main directory for relative import paths (../protobuf/objectivec/)
+          # Using v3.21.12 because it has GPBUnknownFieldSet.h which was renamed in newer versions
           cd ${{ github.workspace }}
-          if [ ! -d "protobuf" ]; then
-            git clone --quiet --depth=1 https://github.com/protocolbuffers/protobuf.git
-          fi
+          git clone --quiet --depth=1 --branch v3.21.12 https://github.com/protocolbuffers/protobuf.git
 
       - name: Create roothide.h stub header
         run: |
@@ -183,15 +178,14 @@ jobs:
         env:
           THEOS: ${{ github.workspace }}/theos
 
-      - name: Build YouTube Plus (YTLite) from source with custom patches
+      - name: Build YouTube Plus (YTLite) from source
         id: build_ytplus
         run: |
-          # Build YTLite from the source code in this repo (main/YTLite)
-          # This includes the custom patches for New Button and Both speed option
+          # Build YTLite from the source code in this repo
           cd ${{ github.workspace }}/main
-          make clean package DEBUG=0 FINALPACKAGE=1 TWEAK_VERSION=${{ inputs.tweak_version }}
+          make clean package DEBUG=0 FINALPACKAGE=1
           mv packages/*.deb ${{ github.workspace }}/ytplus.deb
-          echo "Built YouTube Plus with custom patches from source"
+          echo "Built YouTube Plus from source with custom features"
         env:
           THEOS: ${{ github.workspace }}/theos
 

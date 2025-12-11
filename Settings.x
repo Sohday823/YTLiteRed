@@ -135,52 +135,6 @@ static NSString *GetCacheSize() {
 
     [sectionItems addObject:general];
 
-    // Downloading section with button placement setting
-    YTSettingsSectionItem *downloading = [YTSettingsSectionItemClass itemWithTitle:LOC(@"Downloading")
-    accessibilityIdentifier:@"YTLiteSectionItem"
-    detailTextBlock:^NSString *() {
-        return @"‣";
-    }
-    selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
-        NSMutableArray <YTSettingsSectionItem *> *rows = [NSMutableArray array];
-
-        // Download Button Placement setting
-        // Options: 0 = Under Player, 1 = Overlay, 2 = Both, 3 = New Button (Save button without removing YouTube's Download)
-        YTSettingsSectionItem *buttonPlacement = [YTSettingsSectionItemClass itemWithTitle:LOC(@"YtlButtonPosition")
-        accessibilityIdentifier:@"YTLiteSectionItem"
-        detailTextBlock:^NSString *() {
-            NSArray *placementLabels = @[LOC(@"UnderPlayer"), LOC(@"Overlay"), LOC(@"Both"), LOC(@"NewButton")];
-            NSInteger index = ytlInt(@"downloadButtonPlacementIndex");
-            if (index >= placementLabels.count) index = 0;
-            return placementLabels[index];
-        }
-        selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
-            NSMutableArray <YTSettingsSectionItem *> *placementRows = [NSMutableArray array];
-            NSArray *placementLabels = @[LOC(@"UnderPlayer"), LOC(@"Overlay"), LOC(@"Both"), LOC(@"NewButton")];
-
-            for (NSUInteger i = 0; i < placementLabels.count; i++) {
-                NSString *title = placementLabels[i];
-                YTSettingsSectionItem *item = [YTSettingsSectionItemClass checkmarkItemWithTitle:title titleDescription:nil selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
-                    [settingsViewController reloadData];
-                    ytlSetInt((int)arg1, @"downloadButtonPlacementIndex");
-                    return YES;
-                }];
-                [placementRows addObject:item];
-            }
-
-            YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"YtlButtonPosition") pickerSectionTitle:nil rows:placementRows selectedItemIndex:ytlInt(@"downloadButtonPlacementIndex") parentResponder:[self parentResponder]];
-            [settingsViewController pushViewController:picker];
-            return YES;
-        }];
-        [rows addObject:buttonPlacement];
-
-        YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"Downloading") pickerSectionTitle:nil rows:rows selectedItemIndex:NSNotFound parentResponder:[self parentResponder]];
-        [settingsViewController pushViewController:picker];
-        return YES;
-    }];
-
-    [sectionItems addObject:downloading];
-
     YTSettingsSectionItem *navbar = [YTSettingsSectionItemClass itemWithTitle:LOC(@"Navbar")
     accessibilityIdentifier:@"YTLiteSectionItem"
     detailTextBlock:^NSString *() {

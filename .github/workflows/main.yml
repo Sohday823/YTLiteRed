@@ -169,7 +169,7 @@ jobs:
           control_tar="${control_tar[0]}"
           tar -xf "$data_tar" -C data
           tar -xf "$control_tar" -C control
-          PATCH_ROOT="$workdir/data" python3 ${{ github.workspace }}/patches/ytplus/update_strings.py || exit 1
+          PATCH_ROOT="$workdir/data" python3 ${{ github.workspace }}/patches/ytplus/update_strings.py
           # Repack using original compression type when possible
           data_ext="${data_tar##*.}"
           control_ext="${control_tar##*.}"

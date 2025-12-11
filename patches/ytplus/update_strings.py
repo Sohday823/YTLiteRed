@@ -22,7 +22,7 @@ def main() -> int:
         try:
             with strings_path.open("rb") as handle:
                 data = plistlib.load(handle)
-        except Exception as exc:  # plistlib can raise ValueError on malformed data
+        except (OSError, plistlib.InvalidFileException, ValueError) as exc:
             sys.exit(f"[ytlite patch] Failed to read {strings_path}: {exc}")
         if "Both" in data:
             data["Both"] = "New Button"
@@ -31,7 +31,7 @@ def main() -> int:
         try:
             with strings_path.open("wb") as handle:
                 plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)
-        except Exception as exc:
+        except OSError as exc:
             sys.exit(f"[ytlite patch] Failed to write {strings_path}: {exc}")
     return 0
 

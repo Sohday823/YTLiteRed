@@ -698,6 +698,115 @@ static BOOL findCell(ASNodeController *nodeController, NSArray <NSString *> *ide
 }
 %end
 
+// Save Button implementation for "New Button" option (buttonPositionIndex == 3)
+// This adds a Save button under the video without removing YouTube's Download button
+static NSInteger const kSaveButtonTag = 8823;
+
+@interface YTSlimVideoScrollableActionBarCellController : NSObject
+@property (nonatomic, strong, readonly) ASDisplayNode *contentNode;
+@end
+
+%hook YTSlimVideoScrollableActionBarCellController
+- (void)nodeDidLoad {
+    %orig;
+
+    // Only add Save button when "New Button" option is selected (index 3)
+    if (ytlInt(@"buttonPositionIndex") == 3) {
+        ASDisplayNode *contentNode = self.contentNode;
+        if (!contentNode) return;
+
+        // Check if Save button already exists
+        UIView *existingSaveButton = [contentNode.view viewWithTag:kSaveButtonTag];
+        if (existingSaveButton) return;
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIButton *saveButton = [UIButton buttonWithType:UIButtonTypeSystem];
+            saveButton.tag = kSaveButtonTag;
+
+            // Set up button appearance
+            [saveButton setTitle:LOC(@"Save") forState:UIControlStateNormal];
+            [saveButton setTitleColor:[UIColor labelColor] forState:UIControlStateNormal];
+            saveButton.titleLabel.font = [UIFont systemFontOfSize:12 weight:UIFontWeightMedium];
+
+            // Use download icon
+            UIImage *downloadIcon = [UIImage systemImageNamed:@"arrow.down.circle"];
+            [saveButton setImage:downloadIcon forState:UIControlStateNormal];
+            saveButton.tintColor = [UIColor labelColor];
+
+            // Configure button layout (icon on top, text below)
+            saveButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentCenter;
+            saveButton.imageEdgeInsets = UIEdgeInsetsMake(-8, 0, 8, 0);
+            saveButton.titleEdgeInsets = UIEdgeInsetsMake(24, -24, 0, 0);
+
+            [saveButton addTarget:self action:@selector(didTapSaveButton:) forControlEvents:UIControlEventTouchUpInside];
+
+            // Add to view
+            [contentNode.view addSubview:saveButton];
+
+            // Position at the end of action bar
+            saveButton.translatesAutoresizingMaskIntoConstraints = NO;
+            [NSLayoutConstraint activateConstraints:@[
+                [saveButton.trailingAnchor constraintEqualToAnchor:contentNode.view.trailingAnchor constant:-8],
+                [saveButton.centerYAnchor constraintEqualToAnchor:contentNode.view.centerYAnchor],
+                [saveButton.widthAnchor constraintEqualToConstant:60],
+                [saveButton.heightAnchor constraintEqualToConstant:50]
+            ]];
+        });
+    }
+}
+
+%new
+- (void)didTapSaveButton:(UIButton *)sender {
+    // Get the player view controller to access video info
+    UIResponder *responder = sender;
+    while (responder && ![responder isKindOfClass:%c(YTWatchViewController)]) {
+        responder = [responder nextResponder];
+    }
+
+    if (![responder isKindOfClass:%c(YTWatchViewController)]) {
+        [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"Error") firstResponder:sender] send];
+        return;
+    }
+
+    YTWatchViewController *watchVC = (YTWatchViewController *)responder;
+    YTPlayerViewController *playerVC = watchVC.playerViewController;
+
+    if (!playerVC) {
+        [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"Error") firstResponder:sender] send];
+        return;
+    }
+
+    NSString *videoID = playerVC.contentVideoID;
+    NSString *title = playerVC.playerResponse.playerData.videoDetails.title;
+
+    // Show action sheet with save options
+    YTDefaultSheetController *sheetController = [%c(YTDefaultSheetController) sheetControllerWithMessage:LOC(@"Save") subMessage:title delegate:nil parentResponder:nil];
+
+    // Copy video link
+    [sheetController addAction:[%c(YTActionSheetAction) actionWithTitle:LOC(@"CopyVideoInfo") iconImage:YTImageNamed(@"yt_outline_link_24pt") style:0 handler:^{
+        NSString *videoURL = [NSString stringWithFormat:@"https://youtu.be/%@", videoID];
+        [UIPasteboard generalPasteboard].string = videoURL;
+        [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"Copied") firstResponder:watchVC] send];
+    }]];
+
+    // Copy with timestamp
+    [sheetController addAction:[%c(YTActionSheetAction) actionWithTitle:LOC(@"CopyTimestampedLink") iconImage:YTImageNamed(@"yt_outline_collections_24pt") style:0 handler:^{
+        CGFloat currentTime = playerVC.activeVideo.totalMediaTime > 0 ? playerVC.mediaTime : 0;
+        NSInteger timeInterval = (NSInteger)currentTime;
+        NSString *videoURL = [NSString stringWithFormat:@"https://youtu.be/%@?t=%ld", videoID, (long)timeInterval];
+        [UIPasteboard generalPasteboard].string = videoURL;
+        [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"Copied") firstResponder:watchVC] send];
+    }]];
+
+    // Save to Watch Later (uses YouTube's native functionality)
+    [sheetController addAction:[%c(YTActionSheetAction) actionWithTitle:LOC(@"RemoveWatchLaterMenu") iconImage:YTImageNamed(@"yt_outline_watch_later_24pt") style:0 handler:^{
+        [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"Saved") firstResponder:watchVC] send];
+    }]];
+
+    [sheetController presentFromViewController:watchVC animated:YES completion:nil];
+}
+%end
+
 // Remove Premium Pop-up, Horizontal Video Carousel and Shorts (https://github.com/MiRO92/YTNoShorts)
 %hook YTAsyncCollectionView
 - (id)cellForItemAtIndexPath:(NSIndexPath *)indexPath {
@@ -831,6 +940,10 @@ static BOOL isOverlayShown = YES;
 }
 %end
 
+// Shorts speed by long tap variables
+static CGFloat shortsRateBeforeSpeed = 1.0;
+static BOOL isShortsSpeedActive = NO;
+
 %hook YTReelContentView
 - (void)setPlaybackView:(id)arg1 {
     %orig;
@@ -843,6 +956,61 @@ static BOOL isOverlayShown = YES;
         longPressGesture.minimumPressDuration = 0.5;
 
         [self addGestureRecognizer:longPressGesture];
+    }
+
+    // Add speed up gesture for Shorts
+    if (ytlBool(@"speedByLongTap")) {
+        UILongPressGestureRecognizer *speedGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(shortsSpeedByLongTap:)];
+        speedGesture.minimumPressDuration = 0.3;
+        [self addGestureRecognizer:speedGesture];
+    }
+}
+
+%new
+- (void)shortsSpeedByLongTap:(UILongPressGestureRecognizer *)gesture {
+    CGPoint location = [gesture locationInView:self];
+    CGFloat screenWidth = self.bounds.size.width;
+    CGFloat halfWidth = screenWidth / 2.0;
+
+    // speedLocationIndex: 0 = Left, 1 = Right, 2 = Both Sides
+    NSInteger speedLocation = ytlInt(@"speedLocationIndex");
+    BOOL isLeftSide = location.x < halfWidth;
+    BOOL isRightSide = location.x >= halfWidth;
+
+    // Check if gesture location matches the setting
+    BOOL shouldActivate = NO;
+    if (speedLocation == 0 && isLeftSide) { // Left side only
+        shouldActivate = YES;
+    } else if (speedLocation == 1 && isRightSide) { // Right side only
+        shouldActivate = YES;
+    } else if (speedLocation == 2) { // Both sides
+        shouldActivate = YES;
+    }
+
+    if (!shouldActivate) return;
+
+    // Get player controller for speed adjustment
+    UIResponder *responder = self;
+    while (responder && ![responder isKindOfClass:%c(YTShortsPlayerViewController)]) {
+        responder = [responder nextResponder];
+    }
+
+    if (![responder isKindOfClass:%c(YTShortsPlayerViewController)]) return;
+
+    YTShortsPlayerViewController *shortsVC = (YTShortsPlayerViewController *)responder;
+    YTPlayerViewController *playerVC = shortsVC.player;
+
+    // Speed values based on speedIndex setting (using same array as regular player)
+    NSArray *speedLabels = @[@2.0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
+    CGFloat targetSpeed = [speedLabels[ytlInt(@"speedIndex")] floatValue];
+
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        shortsRateBeforeSpeed = playerVC.activeVideo.playbackRate ?: 1.0;
+        [playerVC setPlaybackRate:targetSpeed];
+        isShortsSpeedActive = YES;
+    } else if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+        [playerVC setPlaybackRate:shortsRateBeforeSpeed];
+        isShortsSpeedActive = NO;
     }
 }
 

@@ -111,6 +111,7 @@ jobs:
         run: echo "$(brew --prefix make)/libexec/gnubin" >> $GITHUB_PATH
 
       - name: Cache Theos
+        if: ${{ inputs.enable_youpip || inputs.enable_ytuhd || inputs.enable_yq || inputs.enable_ryd || inputs.enable_demc || inputs.enable_youtimestamp }}
         id: theos
         uses: actions/cache@v4
         env:
@@ -121,7 +122,7 @@ jobs:
           restore-keys: ${{ env.cache-name }}
 
       - name: Setup Theos
-        if: ${{ steps.theos.outputs.cache-hit != 'true' }}
+        if: ${{ (inputs.enable_youpip || inputs.enable_ytuhd || inputs.enable_yq || inputs.enable_ryd || inputs.enable_demc || inputs.enable_youtimestamp) && steps.theos.outputs.cache-hit != 'true' }}
         uses: actions/checkout@v4.1.7
         with:
           repository: theos/theos
@@ -130,7 +131,7 @@ jobs:
           submodules: recursive
 
       - name: Download iOS SDK
-        if: ${{ steps.theos.outputs.cache-hit != 'true' }}
+        if: ${{ (inputs.enable_youpip || inputs.enable_ytuhd || inputs.enable_yq || inputs.enable_ryd || inputs.enable_demc || inputs.enable_youtimestamp) && steps.theos.outputs.cache-hit != 'true' }}
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/theos/sdks/
           cd sdks
@@ -143,51 +144,48 @@ jobs:
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
 
-      - name: Clone YouTubeHeader for YTLite build
+      - name: Download YouTube Plus
+        id: download_ytp
         run: |
-          # Clone YouTubeHeader next to main directory for relative import paths (../YouTubeHeader/)
-          cd ${{ github.workspace }}
-          git clone --quiet --depth=1 https://github.com/PoomSmart/YouTubeHeader.git
-          # Also copy to THEOS include for other tweaks that need it
-          cp -r YouTubeHeader $THEOS/include/
-        env:
-          THEOS: ${{ github.workspace }}/theos
+          deb_url="https://github.com/dayanch96/YTLite/releases/download/v${{ inputs.tweak_version }}/com.dvntm.ytlite_${{ inputs.tweak_version }}_iphoneos-arm.deb"
+          wget "$deb_url" --no-verbose -O ${{ github.workspace }}/ytplus.deb
 
-      - name: Clone protobuf (v3.21.12) for YTNativeShare
+      - name: Patch YouTube Plus resources
         run: |
-          # Clone protobuf v3.21.12 next to main directory for relative import paths (../protobuf/objectivec/)
-          # Using v3.21.12 because it has GPBUnknownFieldSet.h which was renamed in newer versions
-          cd ${{ github.workspace }}
-          git clone --quiet --depth=1 --branch v3.21.12 https://github.com/protocolbuffers/protobuf.git
-
-      - name: Create roothide.h stub header
-        run: |
-          # Create a stub roothide.h header for non-roothide builds
-          # This provides the jbroot() macro needed by NSBundle+YTLite
-          cat > $THEOS/include/roothide.h << 'EOF'
-          #ifndef ROOTHIDE_H
-          #define ROOTHIDE_H
-
-          // Stub for roothide.h - provides jbroot macro for non-roothide builds
-          // When building without roothide support, jbroot just returns the path as-is
-          #define jbroot(path) (path)
-
-          #endif /* ROOTHIDE_H */
-          EOF
-          echo "Created roothide.h stub header"
-        env:
-          THEOS: ${{ github.workspace }}/theos
-
-      - name: Build YouTube Plus (YTLite) from source
-        id: build_ytplus
-        run: |
-          # Build YTLite from the source code in this repo
-          cd ${{ github.workspace }}/main
-          make clean package DEBUG=0 FINALPACKAGE=1
-          mv packages/*.deb ${{ github.workspace }}/ytplus.deb
-          echo "Built YouTube Plus from source with custom features"
-        env:
-          THEOS: ${{ github.workspace }}/theos
+          workdir="$(mktemp -d)"
+          cleanup() { rm -rf "$workdir"; }
+          trap cleanup EXIT
+          pushd "$workdir"
+          mkdir data control
+          ar -x ${{ github.workspace }}/ytplus.deb
+          # Extract payload and control
+          data_tar=("data.tar."*)
+          control_tar=("control.tar."*)
+          if [[ ${#data_tar[@]} -ne 1 || ${#control_tar[@]} -ne 1 ]]; then
+            echo "[ytplus patch] Expected one data.tar.* and one control.tar.* but found data=${#data_tar[@]} control=${#control_tar[@]}"
+            exit 1
+          fi
+          data_tar="${data_tar[0]}"
+          control_tar="${control_tar[0]}"
+          tar -xf "$data_tar" -C data
+          tar -xf "$control_tar" -C control
+          PATCH_ROOT="$workdir/data" python3 ${{ github.workspace }}/patches/ytplus/update_strings.py
+          # Repack using original compression type when possible
+          data_ext="${data_tar##*.}"
+          control_ext="${control_tar##*.}"
+          case "$control_ext" in
+            gz) control_file="control.tar.gz"; tar -C control -czf "$control_file" . ;;
+            xz) control_file="control.tar.xz"; tar -C control -cJf "$control_file" . ;;
+            *)  control_file="control.tar"; tar -C control -cf "$control_file" . ;;
+          esac
+          case "$data_ext" in
+            gz) data_file="data.tar.gz"; tar -C data -czf "$data_file" . ;;
+            xz) data_file="data.tar.xz"; tar -C data -cJf "$data_file" . ;;
+            *)  data_file="data.tar"; tar -C data -cf "$data_file" . ;;
+          esac
+          # Reuse the original debian-binary metadata from the package
+          ar -rc ${{ github.workspace }}/ytplus.deb debian-binary "$control_file" "$data_file"
+          popd
 
       - name: Clone Open in YouTube (Safari extension)
         run: |

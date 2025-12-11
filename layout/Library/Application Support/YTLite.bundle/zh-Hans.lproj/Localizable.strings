@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "下载按钮位置";
 "UnderPlayer" = "播放器下方";
 "Overlay" = "播放界面";
-"Both" = "New Button";
+"Both" = "新按钮";
 
 "PostDownloadAction" = "下载后操作";
 "PostDownloadDesc" = "视频下载成功完成后将执行所选操作。";

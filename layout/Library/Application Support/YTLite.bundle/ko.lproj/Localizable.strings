@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "다운로드 버튼 배치";
 "UnderPlayer" = "플레이어 아래";
 "Overlay" = "오버레이";
-"Both" = "New Button";
+"Both" = "새 버튼";
 
 "PostDownloadAction" = "다운로드 후 동작";
 "PostDownloadDesc" = "동영상 다운로드가 성공적으로 완료되면 선택된 동작이 수행됩니다.";

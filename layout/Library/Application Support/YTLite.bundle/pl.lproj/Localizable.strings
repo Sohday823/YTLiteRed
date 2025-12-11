@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "Umiejscowienie przycisku pobierania";
 "UnderPlayer" = "Pod odtwarzaczem";
 "Overlay" = "Nakładka";
-"Both" = "New Button";
+"Both" = "Nowy przycisk";
 
 "PostDownloadAction" = "Akcja po pobraniu";
 "PostDownloadDesc" = "Wybrana akcja zostanie wykonana po pomyślnym zakończeniu pobierania wideo.";

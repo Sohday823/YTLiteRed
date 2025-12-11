@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "İndirme düğmesi yerleşimi";
 "UnderPlayer" = "Oynatıcının altında";
 "Overlay" = "Kaplama üzerinde";
-"Both" = "New Button";
+"Both" = "Yeni düğme";
 
 "PostDownloadAction" = "İndirme sonrası eylem";
 "PostDownloadDesc" = "Seçilen eylem, video indirme işlemi başarılı bir şekilde tamamlandığında gerçekleştirilecektir.";

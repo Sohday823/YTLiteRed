@@ -145,13 +145,25 @@ jobs:
 
       - name: Clone YouTubeHeader for YTLite build
         run: |
-          if [ ! -d "$THEOS/include/YouTubeHeader" ]; then
-            echo "YouTubeHeader does not exist. Cloning repository..."
-            cd $THEOS/include
+          # Clone YouTubeHeader next to main directory for relative import paths
+          cd ${{ github.workspace }}
+          if [ ! -d "YouTubeHeader" ]; then
             git clone --quiet --depth=1 https://github.com/PoomSmart/YouTubeHeader.git
+          fi
+          # Also copy to THEOS include for other tweaks that need it
+          if [ ! -d "$THEOS/include/YouTubeHeader" ]; then
+            cp -r YouTubeHeader $THEOS/include/
           fi
         env:
           THEOS: ${{ github.workspace }}/theos
+
+      - name: Clone protobuf for YTNativeShare
+        run: |
+          # Clone protobuf next to main directory for relative import paths used by YTNativeShare.x
+          cd ${{ github.workspace }}
+          if [ ! -d "protobuf" ]; then
+            git clone --quiet --depth=1 https://github.com/protocolbuffers/protobuf.git
+          fi
 
       - name: Create roothide.h stub header
         run: |

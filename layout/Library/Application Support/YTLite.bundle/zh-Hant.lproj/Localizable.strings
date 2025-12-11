@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "下載按鈕位置";
 "UnderPlayer" = "播放器下方";
 "Overlay" = "播放介面";
-"Both" = "兩者皆有";
+"Both" = "新按鈕";
 
 "PostDownloadAction" = "下載後動作";
 "PostDownloadDesc" = "影片成功下載完成後，執行選定的動作";

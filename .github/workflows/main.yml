@@ -144,11 +144,42 @@ jobs:
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
 
-      - name: Download YouTube Plus
-        id: download_ytp
+      - name: Build YouTube Plus
         run: |
-          deb_url="https://github.com/dayanch96/YTLite/releases/download/v${{ inputs.tweak_version }}/com.dvntm.ytlite_${{ inputs.tweak_version }}_iphoneos-arm.deb"
-          wget "$deb_url" --no-verbose -O ${{ github.workspace }}/ytplus.deb
+          checkout_root="${GITHUB_WORKSPACE}/main"
+          source_ytplus_dir="${checkout_root}/YTLitePlus archive"
+          safe_ytplus_dir="${checkout_root}/YTLitePlus_archive"
+          if [ -d "$safe_ytplus_dir" ]; then
+            cd -- "$safe_ytplus_dir"
+          elif [ -d "$source_ytplus_dir" ]; then
+            ln -sfn "$source_ytplus_dir" "$safe_ytplus_dir"
+            if [ ! -d "$safe_ytplus_dir" ]; then
+              echo "::error::Failed to prepare symlinked YouTube Plus directory at $safe_ytplus_dir"
+              exit 1
+            fi
+            cd -- "$safe_ytplus_dir"
+          else
+            echo "::error::YouTube Plus source directory not found at $source_ytplus_dir"
+            exit 1
+          fi
+          make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }} || { echo "::error::YouTube Plus build failed"; exit 1; }
+          if [ ! -d packages ]; then
+            echo "::error::YouTube Plus build output directory missing at $safe_ytplus_dir/packages"
+            exit 1
+          fi
+          deb_list=$(find packages -maxdepth 1 -type f -name '*.deb' | sort)
+          if [ -z "$deb_list" ]; then
+            echo "::error::YouTube Plus package was not produced"
+            exit 1
+          fi
+          deb_file=$(printf '%s\n' "$deb_list" | head -n 1)
+          deb_count=$(printf '%s\n' "$deb_list" | wc -l)
+          if [ "$deb_count" -gt 1 ]; then
+            echo "::warning::Multiple YouTube Plus packages found, using $deb_file"
+          fi
+          mv "$deb_file" "${{ github.workspace }}/ytplus.deb"
+        env:
+          THEOS: ${{ github.workspace }}/theos
 
       - name: Clone Open in YouTube (Safari extension)
         run: |

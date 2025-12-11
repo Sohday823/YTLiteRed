@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "Vị trí nút tải xuống";
 "UnderPlayer" = "Dưới trình phát";
 "Overlay" = "Trong trình phát";
-"Both" = "Cả hai";
+"Both" = "Nút mới";
 
 "PostDownloadAction" = "Sau khi tải xuống";
 "PostDownloadDesc" = "Chọn tác vụ để thực hiện sau khi tải video hoàn tất.";

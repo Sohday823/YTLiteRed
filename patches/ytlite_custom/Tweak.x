@@ -1,15 +1,21 @@
 /**
  * YTLite Custom Patches
  * 
- * This tweak adds custom features that extend YTLite:
- * 1. "Either" option for speed up activation - allows either left OR right side to activate speed up on shorts
+ * This tweak provides supporting infrastructure for custom YTLite features.
  * 
- * Note: The "New Button" feature (adds Save button without removing YouTube's Download) requires
- * deeper integration with YTLite's download manager and is documented via localization strings only.
- * The behavioral implementation for New Button would require modifying YTLite's source directly.
+ * Features:
+ * 1. "Either" option for speed up activation
+ *    - The localization strings for this option are injected into YTLite's bundle
+ *    - The actual behavioral logic requires YTLite to read the shortSpeedLocation setting
+ *      and handle value 2 (Either) to accept gestures from both sides
+ *    - This tweak serves as a placeholder for future implementation when YTLite source is available
  * 
- * These patches work alongside the downloaded YTLite deb by hooking into YouTube's classes
- * and extending/overriding YTLite's behavior where needed.
+ * 2. "New Button" option for downloading
+ *    - Localization strings are added for this option
+ *    - Full implementation requires YTLite source modification
+ * 
+ * Note: These patches work alongside the downloaded YTLite deb. The localization
+ * changes are injected during the build process in main.yml.
  */
 
 #import <UIKit/UIKit.h>
@@ -20,9 +26,9 @@
 
 // Key for speed location on Shorts
 // shortSpeedLocation values:
-// 0 - Left side only
+// 0 - Left side only  
 // 1 - Right side only  
-// 2 - Either side (new option)
+// 2 - Either side (new option added by this fork)
 static NSString *const kShortSpeedLocationKey = @"shortSpeedLocation";
 
 @interface YTSpeedmasterController : NSObject
@@ -30,24 +36,23 @@ static NSString *const kShortSpeedLocationKey = @"shortSpeedLocation";
 @end
 
 /**
- * Extension to make "Either" option work for speed activation
+ * Hook for "Either" speed location option
  * 
- * When shortSpeedLocation is 2 (Either), we modify the gesture handling
- * to accept long press from either side of the screen.
+ * This hook intercepts the speed control gesture handler.
+ * When shortSpeedLocation is 2 (Either), the gesture should be accepted
+ * regardless of which side of the screen was pressed.
  * 
- * The original YTLite checks which side of the screen was pressed and only
- * activates speed up if it matches the user's preference (left or right).
- * With "Either" selected (value 2), we bypass this check and allow
- * speed up from either side.
+ * Implementation note: The actual left/right detection logic is in YTLite's
+ * compiled code. This hook passes through to the original implementation.
+ * For the "Either" option to work fully, YTLite would need to check for
+ * value 2 and bypass its left/right checks.
  */
 %hook YTSpeedmasterController
 
 - (void)speedmasterDidLongPressWithRecognizer:(UILongPressGestureRecognizer *)gesture {
-    NSInteger speedLocation = ytlInt(kShortSpeedLocationKey);
-    
-    // If "Either" option (2) is selected, always allow the gesture
-    // regardless of which side of the screen was pressed.
-    // Otherwise, let original YTLite logic handle left (0) / right (1) selection.
+    // Note: The "Either" option (value 2) requires YTLite to support it.
+    // This hook ensures the gesture is always passed to YTLite.
+    // The localization strings for "Either" are injected separately.
     %orig;
 }
 

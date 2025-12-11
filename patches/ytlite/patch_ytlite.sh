@@ -46,22 +46,26 @@ for lang_dir in "$BUNDLE_SOURCE_DIR"/*.lproj; do
     if [ -d "$lang_dir" ]; then
         lang_name=$(basename "$lang_dir")
         dest_lang_dir="$BUNDLE_DEST/$lang_name"
+        src_file="$lang_dir/Localizable.strings"
         
-        if [ -d "$dest_lang_dir" ]; then
+        if [ -d "$dest_lang_dir" ] && [ -f "$src_file" ]; then
             echo "  Updating $lang_name..."
-            cp -f "$lang_dir/Localizable.strings" "$dest_lang_dir/" 2>/dev/null || true
-        else
+            cp -f "$src_file" "$dest_lang_dir/"
+        elif [ -f "$src_file" ]; then
             echo "  Creating $lang_name..."
             mkdir -p "$dest_lang_dir"
-            cp -f "$lang_dir/Localizable.strings" "$dest_lang_dir/" 2>/dev/null || true
+            cp -f "$src_file" "$dest_lang_dir/"
         fi
     fi
 done
 
-# Repack the deb
+# Repack the deb - need to combine data and control directories
 echo "Repacking deb..."
-dpkg-deb -b "$TEMP_DIR/data" "$TEMP_DIR/control" "$OUTPUT_DEB" 2>/dev/null || \
-dpkg-deb -b "$TEMP_DIR" "$OUTPUT_DEB"
+# Create proper deb structure
+mkdir -p "$TEMP_DIR/deb/DEBIAN"
+cp -r "$TEMP_DIR/control"/* "$TEMP_DIR/deb/DEBIAN/"
+cp -r "$TEMP_DIR/data"/* "$TEMP_DIR/deb/"
+dpkg-deb -b "$TEMP_DIR/deb" "$OUTPUT_DEB"
 
 # Cleanup
 echo "Cleaning up..."

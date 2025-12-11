@@ -162,7 +162,7 @@ jobs:
           data_tar=("data.tar."*)
           control_tar=("control.tar."*)
           if [[ ${#data_tar[@]} -ne 1 || ${#control_tar[@]} -ne 1 ]]; then
-            echo "[ytlite patch] Expected one data.tar.* and one control.tar.* but found data=${#data_tar[@]} control=${#control_tar[@]}"
+            echo "[ytplus patch] Expected one data.tar.* and one control.tar.* but found data=${#data_tar[@]} control=${#control_tar[@]}"
             exit 1
           fi
           data_tar="${data_tar[0]}"

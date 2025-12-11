@@ -162,7 +162,7 @@ jobs:
             echo "Found YTLite.bundle at: $BUNDLE_DIR"
             
             # Copy our customized localization files
-            for lang_dir in main/layout/Library/Application\ Support/YTLite.bundle/*.lproj; do
+            for lang_dir in ${{ github.workspace }}/main/layout/Library/Application\ Support/YTLite.bundle/*.lproj; do
               if [ -d "$lang_dir" ]; then
                 lang_name=$(basename "$lang_dir")
                 dest_lang_dir="$BUNDLE_DIR/$lang_name"

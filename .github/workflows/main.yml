@@ -154,7 +154,7 @@ jobs:
         run: |
           workdir="$(mktemp -d)"
           pushd "$workdir"
-          mkdir extracted data control
+          mkdir data control
           ar -x ${{ github.workspace }}/ytplus.deb
           # Extract payload and control
           tar -xf data.tar.* -C data
@@ -164,7 +164,14 @@ import os
 import pathlib, plistlib
 
 bundle = pathlib.Path(os.environ["PATCH_ROOT"]) / "Library" / "Application Support" / "YTLite.bundle"
-for strings_path in bundle.glob("*.lproj/Localizable.strings"):
+if not bundle.exists():
+    raise SystemExit(f"Bundle not found at {bundle}")
+
+localizations = list(bundle.glob("*.lproj/Localizable.strings"))
+if not localizations:
+    raise SystemExit(f"No localization files found under {bundle}")
+
+for strings_path in localizations:
     data = plistlib.load(strings_path.open('rb'))
     if "Both" in data:
         data["Both"] = "New Button"

@@ -25,7 +25,8 @@ static NSString *GetCacheSize() {
 
 static NSUInteger ShortsSpeedLocationIndex(NSUInteger count) {
     NSInteger index = ytlInt(@"shortsSpeedLocation");
-    if (index < 0 || (NSUInteger)index >= count) return 0;
+    if (index < 0) return 0;
+    if ((NSUInteger)index >= count) return 0;
     return (NSUInteger)index;
 }
 

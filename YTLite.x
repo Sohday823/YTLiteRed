@@ -864,21 +864,27 @@ static BOOL isOverlayShown = YES;
 // Indices 1 and 9 intentionally map to 2.0× to mirror the original speedmaster mapping
 // used by the upstream speedmaster implementation. Keeping both preserves compatibility
 // with existing preference values.
-static const CGFloat kSpeedmasterSpeeds[] = {0.0, 2.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0, 4.0, 5.0};
-static const NSUInteger kSpeedmasterSpeedsCount = sizeof(kSpeedmasterSpeeds) / sizeof(CGFloat);
-
-static NSArray *speedmasterLabels(void) {
-    static NSArray *labels;
+static NSDictionary <NSNumber *, NSNumber *> *speedmasterSpeeds(void) {
+    static NSDictionary *speeds;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        // Indices 1 and 9 both map to 2.0× to mirror the existing speedmaster mapping.
-        NSMutableArray *mutable = [NSMutableArray arrayWithCapacity:kSpeedmasterSpeedsCount];
-        for (NSUInteger i = 0; i < kSpeedmasterSpeedsCount; i++) {
-            [mutable addObject:@(kSpeedmasterSpeeds[i])];
-        }
-        labels = [mutable copy];
+        speeds = @{
+            @0: @0.0,
+            @1: @2.0,
+            @2: @0.25,
+            @3: @0.5,
+            @4: @0.75,
+            @5: @1.0,
+            @6: @1.25,
+            @7: @1.5,
+            @8: @1.75,
+            @9: @2.0,
+            @10: @3.0,
+            @11: @4.0,
+            @12: @5.0
+        };
     });
-    return labels;
+    return speeds;
 }
 
 static const NSInteger kSpeedIndexDisabled = 0;
@@ -886,11 +892,10 @@ static const NSInteger kSpeedIndexTwoXPrimary = 1;
 static const NSInteger kSpeedIndexTwoXOverlay = 9;
 
 static CGFloat shortsHoldSpeedWithIndex(NSInteger index) {
-    NSArray *labels = speedmasterLabels();
-    NSUInteger count = labels.count;
-    BOOL outOfRange = index < 0 || (NSUInteger)index >= count;
-    if (index == kSpeedIndexDisabled || outOfRange) return 1.0; // disabled or invalid
-    return [labels[index] floatValue];
+    if (index == kSpeedIndexDisabled) return 1.0; // disabled
+    NSDictionary *speeds = speedmasterSpeeds();
+    NSNumber *value = speeds[@(index)];
+    return value ? value.floatValue : 1.0;
 }
 
 static CGFloat shortsHoldSpeed(void) {

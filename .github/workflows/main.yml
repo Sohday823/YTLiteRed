@@ -144,11 +144,13 @@ jobs:
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
 
-      - name: Download YouTube Plus
-        id: download_ytp
+      - name: Build YouTube Plus
         run: |
-          deb_url="https://github.com/dayanch96/YTLite/releases/download/v${{ inputs.tweak_version }}/com.dvntm.ytlite_${{ inputs.tweak_version }}_iphoneos-arm.deb"
-          wget "$deb_url" --no-verbose -O ${{ github.workspace }}/ytplus.deb
+          cd "${{ github.workspace }}/main/YTLitePlus archive"
+          make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }}
+          mv packages/*.deb "${{ github.workspace }}/ytplus.deb"
+        env:
+          THEOS: ${{ github.workspace }}/theos
 
       - name: Clone Open in YouTube (Safari extension)
         run: |

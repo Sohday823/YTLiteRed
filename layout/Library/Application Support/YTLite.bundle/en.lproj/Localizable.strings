@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "Downloading button placement";
 "UnderPlayer" = "Under the player";
 "Overlay" = "Overlay";
-"Both" = "Both";
+"Both" = "New Button";
 
 "PostDownloadAction" = "Post-download action";
 "PostDownloadDesc" = "The selected action will be performed upon successful completion of the video download.";

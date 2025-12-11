@@ -146,15 +146,19 @@ jobs:
 
       - name: Build YouTube Plus
         run: |
-          ytplus_dir="${{ github.workspace }}/main/YTLitePlus archive"
+          ytplus_dir="${{ github.workspace }}/main"
           cd "$ytplus_dir"
+          cd "YTLitePlus archive"
           make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }}
-          deb_file=$(find packages -maxdepth 1 -name '*.deb' | head -n 1)
-          if [ -z "$deb_file" ]; then
+          mapfile -t deb_files < <(find packages -maxdepth 1 -name '*.deb')
+          if [ "${#deb_files[@]}" -eq 0 ]; then
             echo "::error::YouTube Plus package was not produced"
             exit 1
           fi
-          mv "$deb_file" "${{ github.workspace }}/ytplus.deb"
+          if [ "${#deb_files[@]}" -gt 1 ]; then
+            echo "::warning::Multiple YouTube Plus packages found, using ${deb_files[0]}"
+          fi
+          mv "${deb_files[0]}" "${{ github.workspace }}/ytplus.deb"
         env:
           THEOS: ${{ github.workspace }}/theos
 

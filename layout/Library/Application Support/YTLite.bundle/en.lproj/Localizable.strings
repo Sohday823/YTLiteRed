@@ -260,6 +260,9 @@
 "SpeedByLongTap" = "Increase Shorts playback rate";
 "SpeedByLongTapDesc" = "Allows to speed up playback by long pressing on a certain part of the screen.";
 "SpeedLocation" = "Speed up activation location";
+"SpeedLocationDesc" = "Select which side of the screen activates speed up when long pressing.";
+"Left" = "Left";
+"Right" = "Right";
 "PinchToFullscreenShorts" = "Pinch to Fullscreen";
 "PinchToFullscreenShortsDesc" = "Manages visibility of the overlay with pinch in and pinch out gestures, displaying Shorts in fullscreen mode.";
 "ShortsToRegular" = "Shorts to regular videos";

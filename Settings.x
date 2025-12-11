@@ -238,11 +238,12 @@ static NSString *GetCacheSize() {
             return @"‣";
         }
         selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
-            NSArray <YTSettingsSectionItem *> *rows = @[
+            NSMutableArray <YTSettingsSectionItem *> *rows = [@[
                 [self switchWithTitle:@"ShortsOnlyMode" key:@"shortsOnlyMode"],
                 [self switchWithTitle:@"AutoSkipShorts" key:@"autoSkipShorts"],
                 [self switchWithTitle:@"HideShorts" key:@"hideShorts"],
                 [self switchWithTitle:@"ShortsProgress" key:@"shortsProgress"],
+                [self switchWithTitle:@"SpeedByLongTap" key:@"shortsSpeedByLongTap"],
                 [self switchWithTitle:@"PinchToFullscreenShorts" key:@"pinchToFullscreenShorts"],
                 [self switchWithTitle:@"ShortsToRegular" key:@"shortsToRegular"],
                 [self switchWithTitle:@"ResumeShorts" key:@"resumeShorts"],
@@ -263,7 +264,36 @@ static NSString *GetCacheSize() {
                 [self switchWithTitle:@"HideShortsDescription" key:@"hideShortsDescription"],
                 [self switchWithTitle:@"HideShortsAudioTrack" key:@"hideShortsAudioTrack"],
                 [self switchWithTitle:@"NoPromotionCards" key:@"hideShortsPromoCards"]
-            ];
+            ] mutableCopy];
+
+            // Shorts Speed Location setting (Left, Right, or Both)
+            YTSettingsSectionItem *shortsSpeedLocation = [YTSettingsSectionItemClass itemWithTitle:LOC(@"SpeedLocation")
+            accessibilityIdentifier:@"YTLiteSectionItem"
+            detailTextBlock:^NSString *() {
+                NSArray *locationLabels = @[LOC(@"Left"), LOC(@"Right"), LOC(@"Both")];
+                NSInteger index = ytlInt(@"shortsSpeedLocationIndex");
+                if (index >= locationLabels.count) index = 0;
+                return locationLabels[index];
+            }
+            selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                NSMutableArray <YTSettingsSectionItem *> *locationRows = [NSMutableArray array];
+                NSArray *locationLabels = @[LOC(@"Left"), LOC(@"Right"), LOC(@"Both")];
+
+                for (NSUInteger i = 0; i < locationLabels.count; i++) {
+                    NSString *title = locationLabels[i];
+                    YTSettingsSectionItem *item = [YTSettingsSectionItemClass checkmarkItemWithTitle:title titleDescription:nil selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                        [settingsViewController reloadData];
+                        ytlSetInt((int)arg1, @"shortsSpeedLocationIndex");
+                        return YES;
+                    }];
+                    [locationRows addObject:item];
+                }
+
+                YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"SpeedLocation") pickerSectionTitle:nil rows:locationRows selectedItemIndex:ytlInt(@"shortsSpeedLocationIndex") parentResponder:[self parentResponder]];
+                [settingsViewController pushViewController:picker];
+                return YES;
+            }];
+            [rows addObject:shortsSpeedLocation];
 
             YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"Shorts") pickerSectionTitle:nil rows:rows selectedItemIndex:NSNotFound parentResponder:[self parentResponder]];
             [settingsViewController pushViewController:picker];

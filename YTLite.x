@@ -862,14 +862,15 @@ static BOOL isOverlayShown = YES;
 %end
 
 static NSArray *speedmasterLabels(void) {
+    // Note: indices 1 and 9 both map to 2.0× to mirror the existing speedmaster mapping.
     return @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
 }
 
 static CGFloat shortsHoldSpeed(void) {
     NSArray *labels = speedmasterLabels();
     NSInteger index = ytlInt(@"speedIndex");
-    // Index 0 intentionally disables hold-to-speed
-    if (index <= 0 || index >= (NSInteger)labels.count) return 1.0;
+    if (index == 0) return 1.0; // disabled
+    if (index < 0 || index >= (NSInteger)labels.count) return 1.0;
     return [labels[index] floatValue];
 }
 
@@ -895,6 +896,7 @@ static BOOL isShortsLocationAllowed(UILongPressGestureRecognizer *gesture, UIVie
 static char kShortsSpeedGestureKey;
 static char kShortsSpeedActiveKey;
 static char kShortsSpeedPreviousRateKey;
+static const NSTimeInterval kShortsSpeedLongPressDuration = 0.3;
 
 %hook YTShortsPlayerViewController
 
@@ -906,7 +908,7 @@ static char kShortsSpeedPreviousRateKey;
     UILongPressGestureRecognizer *gesture = objc_getAssociatedObject(self, &kShortsSpeedGestureKey);
     if (!gesture) {
         gesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(ytl_handleShortsSpeed:)];
-        gesture.minimumPressDuration = 0.3;
+        gesture.minimumPressDuration = kShortsSpeedLongPressDuration;
         [self.view addGestureRecognizer:gesture];
         objc_setAssociatedObject(self, &kShortsSpeedGestureKey, gesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
@@ -915,15 +917,16 @@ static char kShortsSpeedPreviousRateKey;
 %new
 - (void)ytl_handleShortsSpeed:(UILongPressGestureRecognizer *)gesture {
     if (!ytlBool(@"shortsSpeedByLongPress")) return;
-    if (ytlInt(@"speedIndex") == 0) return;
     if (!isShortsLocationAllowed(gesture, self.view)) return;
 
     BOOL isActive = [objc_getAssociatedObject(self, &kShortsSpeedActiveKey) boolValue];
+    CGFloat targetRate = shortsHoldSpeed();
+    if (targetRate == 1.0 && ytlInt(@"speedIndex") == 0) return;
 
     if (gesture.state == UIGestureRecognizerStateBegan && !isActive) {
         CGFloat currentRate = shortsCurrentRate(self);
         objc_setAssociatedObject(self, &kShortsSpeedPreviousRateKey, @(currentRate), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        [self.player setPlaybackRate:shortsHoldSpeed()];
+        [self.player setPlaybackRate:targetRate];
         objc_setAssociatedObject(self, &kShortsSpeedActiveKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
 

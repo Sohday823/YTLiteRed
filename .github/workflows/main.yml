@@ -146,7 +146,7 @@ jobs:
 
       - name: Build YouTube Plus
         run: |
-          checkout_root="${GITHUB_WORKSPACE}/${CHECKOUT_PATH:-main}"
+          checkout_root="${GITHUB_WORKSPACE}/main"
           ytplus_dir="${checkout_root}/YTLitePlus archive"
           safe_ytplus_dir="${checkout_root}/YTLitePlus_archive"
           if [ ! -d "$ytplus_dir" ]; then
@@ -161,12 +161,12 @@ jobs:
             exit 1
           fi
           deb_list=$(find packages -maxdepth 1 -type f -name '*.deb' | sort)
-          deb_file=$(echo "$deb_list" | head -n 1)
-          if [ -z "$deb_file" ]; then
+          if [ -z "$deb_list" ]; then
             echo "::error::YouTube Plus package was not produced"
             exit 1
           fi
-          deb_count=$(echo "$deb_list" | grep -c '.')
+          deb_file=$(printf '%s\n' "$deb_list" | head -n 1)
+          deb_count=$(printf '%s\n' "$deb_list" | wc -l)
           if [ "$deb_count" -gt 1 ]; then
             echo "::warning::Multiple YouTube Plus packages found, using $deb_file"
           fi

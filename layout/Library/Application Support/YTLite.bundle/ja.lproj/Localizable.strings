@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "ダウンロードボタンの配置";
 "UnderPlayer" = "プレーヤー下部";
 "Overlay" = "オーバーレイ";
-"Both" = "新しいボタン";
+"Both" = "両方";
 
 "PostDownloadAction" = "ダウンロード後の動作";
 "PostDownloadDesc" = "選択した動作は、動画のダウンロードが正常に完了すると実行されます。";

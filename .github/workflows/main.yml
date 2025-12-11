@@ -158,7 +158,10 @@ jobs:
             echo "::error::YouTube Plus build output directory missing at $ytplus_dir/packages"
             exit 1
           fi
-          deb_files=($(find packages -maxdepth 1 -name '*.deb' | sort))
+          deb_files=()
+          while IFS= read -r file; do
+            deb_files+=("$file")
+          done < <(find packages -maxdepth 1 -name '*.deb' | sort)
           if [ "${#deb_files[@]}" -eq 0 ]; then
             echo "::error::YouTube Plus package was not produced"
             exit 1
@@ -166,7 +169,12 @@ jobs:
           if [ "${#deb_files[@]}" -gt 1 ]; then
             echo "::warning::Multiple YouTube Plus packages found, using ${deb_files[0]}"
           fi
-          mv "${deb_files[0]}" "${{ github.workspace }}/ytplus.deb"
+          first_deb="${deb_files[0]}"
+          if [ -z "$first_deb" ]; then
+            echo "::error::YouTube Plus package path could not be determined"
+            exit 1
+          fi
+          mv "$first_deb" "${{ github.workspace }}/ytplus.deb"
         env:
           THEOS: ${{ github.workspace }}/theos
 

@@ -159,42 +159,17 @@ jobs:
           mkdir data control
           ar -x ${{ github.workspace }}/ytplus.deb
           # Extract payload and control
-          data_tar="$(find . -maxdepth 1 -name 'data.tar.*' | head -n 1)"
-          control_tar="$(find . -maxdepth 1 -name 'control.tar.*' | head -n 1)"
-          if [[ -z "$data_tar" || -z "$control_tar" ]]; then
-            echo "[ytlite patch] Failed to locate data/control payloads in downloaded deb."
+          data_tar=(data.tar.*)
+          control_tar=(control.tar.*)
+          if [[ ${#data_tar[@]} -ne 1 || ${#control_tar[@]} -ne 1 ]]; then
+            echo "[ytlite patch] Expected one data.tar.* and one control.tar.* but found data=${#data_tar[@]} control=${#control_tar[@]}"
             exit 1
           fi
+          data_tar="${data_tar[0]}"
+          control_tar="${control_tar[0]}"
           tar -xf "$data_tar" -C data
           tar -xf "$control_tar" -C control
-          cat > patch_strings.py <<'PY'
-import os
-import pathlib
-import plistlib
-
-root = os.environ.get("PATCH_ROOT")
-if not root:
-    raise SystemExit("[ytlite patch] PATCH_ROOT environment variable is missing.")
-
-bundle = pathlib.Path(root) / "Library" / "Application Support" / "YTLite.bundle"
-if not bundle.exists():
-    raise SystemExit(f"[ytlite patch] Bundle not found at {bundle}. Ensure the downloaded package layout matches expectations.")
-
-localizations = list(bundle.glob("*.lproj/Localizable.strings"))
-if not localizations:
-    raise SystemExit(f"[ytlite patch] No localization files found under {bundle}. Verify the YTLite bundle contents.")
-
-for strings_path in localizations:
-    with strings_path.open("rb") as handle:
-        data = plistlib.load(handle)
-    if "Both" in data:
-        data["Both"] = "New Button"
-    # Add third option label for Shorts speed activation that allows either side
-    data.setdefault("LeftRightSide", "Either side")
-    with strings_path.open("wb") as handle:
-        plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)
-PY
-          PATCH_ROOT="$workdir/data" python patch_strings.py
+          PATCH_ROOT="$workdir/data" python3 ${{ github.workspace }}/patches/ytplus/update_strings.py
           # Repack using original compression type when possible
           data_ext="${data_tar##*.}"
           control_ext="${control_tar##*.}"
@@ -208,7 +183,7 @@ PY
             xz) data_file="data.tar.xz"; tar -C data -cJf "$data_file" . ;;
             *)  data_file="data.tar"; tar -C data -cf "$data_file" . ;;
           esac
-          echo "2.0" > debian-binary
+          # Reuse the original debian-binary metadata from the package
           ar -rc ${{ github.workspace }}/ytplus.deb debian-binary "$control_file" "$data_file"
           popd
 

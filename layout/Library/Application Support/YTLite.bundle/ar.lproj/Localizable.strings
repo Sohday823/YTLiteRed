@@ -15,7 +15,7 @@
 "YtlButtonPosition" = "مكان زر الحفظ";
 "UnderPlayer" = "أسفل المشغل";
 "Overlay" = "المشغل";
-"Both" = "زر جديد";
+"Both" = "كلاهما";
 
 "PostDownloadAction" = "إجراء ما بعد الحفظ";
 "PostDownloadDesc" = "سيتم تنفيذ الإجراء المحدد عند الانتهاء من الحفظ.";

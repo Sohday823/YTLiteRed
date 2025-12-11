@@ -143,15 +143,6 @@ jobs:
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
 
-      - name: Build YouTube Plus (Local)
-        id: build_ytp
-        run: |
-          cd ${{ github.workspace }}/main
-          make clean package DEBUG=0 FINALPACKAGE=1
-          mv packages/*.deb ${{ github.workspace }}/ytplus.deb
-        env:
-          THEOS: ${{ github.workspace }}/theos
-
       - name: Clone Open in YouTube (Safari extension)
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/CokePokes/YoutubeExtensions/
@@ -191,6 +182,22 @@ jobs:
             cd $THEOS/include
             git clone --quiet --depth=1 https://github.com/PoomSmart/PSHeader.git
           fi
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
+      - name: Clone protobuf-objc headers
+        run: |
+          cd $THEOS/include
+          git clone --quiet --depth=1 https://github.com/nicedayzhu/protobuf-objc.git protobuf
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
+      - name: Build YouTube Plus (Local)
+        id: build_ytp
+        run: |
+          cd ${{ github.workspace }}/main
+          make clean package DEBUG=0 FINALPACKAGE=1
+          mv packages/*.deb ${{ github.workspace }}/ytplus.deb
         env:
           THEOS: ${{ github.workspace }}/theos
 

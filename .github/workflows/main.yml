@@ -161,23 +161,26 @@ jobs:
           tar -xf control.tar.* -C control
           PATCH_ROOT="$workdir/data" python <<'PY'
 import os
-import pathlib, plistlib
+import pathlib
+import plistlib
 
 bundle = pathlib.Path(os.environ["PATCH_ROOT"]) / "Library" / "Application Support" / "YTLite.bundle"
 if not bundle.exists():
-    raise SystemExit(f"Bundle not found at {bundle}")
+    raise SystemExit(f"[ytlite patch] Bundle not found at {bundle}. Ensure the downloaded package layout matches expectations.")
 
 localizations = list(bundle.glob("*.lproj/Localizable.strings"))
 if not localizations:
-    raise SystemExit(f"No localization files found under {bundle}")
+    raise SystemExit(f"[ytlite patch] No localization files found under {bundle}. Verify the YTLite bundle contents.")
 
 for strings_path in localizations:
-    data = plistlib.load(strings_path.open('rb'))
+    with strings_path.open("rb") as handle:
+        data = plistlib.load(handle)
     if "Both" in data:
         data["Both"] = "New Button"
     # Add third option label for Shorts speed activation
     data.setdefault("LeftRightSide", "Either side")
-    plistlib.dump(data, strings_path.open('wb'), fmt=plistlib.FMT_BINARY)
+    with strings_path.open("wb") as handle:
+        plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)
 PY
           # Repack using gzip tars for compatibility
           tar -C control -czf control.tar.gz .

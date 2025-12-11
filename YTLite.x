@@ -866,12 +866,19 @@ static NSArray *speedmasterLabels(void) {
     return @[@0, @2.0, @0.25, @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0, @3.0, @4.0, @5.0];
 }
 
-static CGFloat shortsHoldSpeed(void) {
+static const NSInteger kSpeedIndexDisabled = 0;
+static const NSInteger kSpeedIndexTwoXPrimary = 1;
+static const NSInteger kSpeedIndexTwoXOverlay = 9;
+
+static CGFloat shortsHoldSpeedWithIndex(NSInteger index) {
     NSArray *labels = speedmasterLabels();
-    NSInteger index = ytlInt(@"speedIndex");
-    if (index == 0) return 1.0; // disabled
+    if (index == kSpeedIndexDisabled) return 1.0; // disabled
     if (index < 0 || index >= (NSInteger)labels.count) return 1.0;
     return [labels[index] floatValue];
+}
+
+static CGFloat shortsHoldSpeed(void) {
+    return shortsHoldSpeedWithIndex(ytlInt(@"speedIndex"));
 }
 
 static CGFloat shortsCurrentRate(YTShortsPlayerViewController *controller) {
@@ -879,18 +886,22 @@ static CGFloat shortsCurrentRate(YTShortsPlayerViewController *controller) {
     return video ? video.playbackRate : 1.0;
 }
 
+static const NSInteger kShortsSpeedLocationLeft = 0;
+static const NSInteger kShortsSpeedLocationRight = 1;
+static const NSInteger kShortsSpeedLocationEither = 2;
+
 static NSInteger shortsSpeedLocationIndex(void) {
     NSInteger location = ytlInt(@"shortsSpeedLocation");
-    if (location < 0 || location > 2) return 0;
+    if (location < kShortsSpeedLocationLeft || location > kShortsSpeedLocationEither) return kShortsSpeedLocationLeft;
     return location;
 }
 
 static BOOL isShortsLocationAllowed(UILongPressGestureRecognizer *gesture, UIView *view) {
     NSInteger location = shortsSpeedLocationIndex(); // 0: left, 1: right, 2: either
-    if (location == 2) return YES;
+    if (location == kShortsSpeedLocationEither) return YES;
     CGPoint point = [gesture locationInView:view];
     BOOL isLeft = point.x < CGRectGetMidX(view.bounds);
-    return location == 0 ? isLeft : !isLeft;
+    return location == kShortsSpeedLocationLeft ? isLeft : !isLeft;
 }
 
 static char kShortsSpeedGestureKey;
@@ -919,9 +930,11 @@ static const NSTimeInterval kShortsSpeedLongPressDuration = 0.3;
     if (!ytlBool(@"shortsSpeedByLongPress")) return;
     if (!isShortsLocationAllowed(gesture, self.view)) return;
 
+    NSInteger speedIndex = ytlInt(@"speedIndex");
+    CGFloat targetRate = shortsHoldSpeedWithIndex(speedIndex);
+    if (targetRate == 1.0 && speedIndex == kSpeedIndexDisabled) return;
+
     BOOL isActive = [objc_getAssociatedObject(self, &kShortsSpeedActiveKey) boolValue];
-    CGFloat targetRate = shortsHoldSpeed();
-    if (targetRate == 1.0 && ytlInt(@"speedIndex") == 0) return;
 
     if (gesture.state == UIGestureRecognizerStateBegan && !isActive) {
         CGFloat currentRate = shortsCurrentRate(self);

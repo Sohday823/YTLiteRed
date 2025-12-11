@@ -150,6 +150,35 @@ jobs:
           deb_url="https://github.com/dayanch96/YTLite/releases/download/v${{ inputs.tweak_version }}/com.dvntm.ytlite_${{ inputs.tweak_version }}_iphoneos-arm.deb"
           wget "$deb_url" --no-verbose -O ${{ github.workspace }}/ytplus.deb
 
+      - name: Patch YouTube Plus resources
+        run: |
+          workdir="$(mktemp -d)"
+          pushd "$workdir"
+          mkdir extracted data control
+          ar -x ${{ github.workspace }}/ytplus.deb
+          # Extract payload and control
+          tar -xf data.tar.* -C data
+          tar -xf control.tar.* -C control
+          PATCH_ROOT="$workdir/data" python <<'PY'
+import os
+import pathlib, plistlib
+
+bundle = pathlib.Path(os.environ["PATCH_ROOT"]) / "Library" / "Application Support" / "YTLite.bundle"
+for strings_path in bundle.glob("*.lproj/Localizable.strings"):
+    data = plistlib.load(strings_path.open('rb'))
+    if "Both" in data:
+        data["Both"] = "New Button"
+    # Add third option label for Shorts speed activation
+    data.setdefault("LeftRightSide", "Either side")
+    plistlib.dump(data, strings_path.open('wb'), fmt=plistlib.FMT_BINARY)
+PY
+          # Repack using gzip tars for compatibility
+          tar -C control -czf control.tar.gz .
+          tar -C data -czf data.tar.gz .
+          echo "2.0" > debian-binary
+          ar -rc ${{ github.workspace }}/ytplus.deb debian-binary control.tar.gz data.tar.gz
+          popd
+
       - name: Clone Open in YouTube (Safari extension)
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/CokePokes/YoutubeExtensions/

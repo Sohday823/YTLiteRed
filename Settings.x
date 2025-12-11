@@ -23,6 +23,12 @@ static NSString *GetCacheSize() {
     return [formatter stringFromByteCount:folderSize];
 }
 
+static NSUInteger ShortsSpeedLocationIndex(NSUInteger count) {
+    NSInteger index = ytlInt(@"shortsSpeedLocation");
+    if (index < 0 || (NSUInteger)index >= count) return 0;
+    return (NSUInteger)index;
+}
+
 // Settings
 %hook YTAppSettingsPresentationData
 + (NSArray *)settingsCategoryOrder {
@@ -243,9 +249,7 @@ static NSString *GetCacheSize() {
             YTSettingsSectionItem *speedLocation = [YTSettingsSectionItemClass itemWithTitle:LOC(@"SpeedLocation")
                 accessibilityIdentifier:@"YTLiteSectionItem"
                 detailTextBlock:^NSString *() {
-                    NSInteger index = ytlInt(@"shortsSpeedLocation");
-                    if (index < 0 || (NSUInteger)index >= locationLabels.count) index = 0;
-                    return locationLabels[index];
+                    return locationLabels[ShortsSpeedLocationIndex(locationLabels.count)];
                 }
                 selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
                     NSMutableArray <YTSettingsSectionItem *> *rows = [NSMutableArray array];

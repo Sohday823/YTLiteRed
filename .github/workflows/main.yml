@@ -146,9 +146,10 @@ jobs:
 
       - name: Build YouTube Plus
         run: |
-          cd "${{ github.workspace }}/main/YTLitePlus archive"
+          ytplus_dir="${{ github.workspace }}/main/YTLitePlus archive"
+          cd "$ytplus_dir"
           make clean package DEBUG=0 FINALPACKAGE=1 PACKAGE_VERSION=${{ inputs.tweak_version }}
-          deb_file=$(ls packages/*.deb | head -n 1)
+          deb_file=$(find packages -maxdepth 1 -name '*.deb' | head -n 1)
           if [ -z "$deb_file" ]; then
             echo "::error::YouTube Plus package was not produced"
             exit 1

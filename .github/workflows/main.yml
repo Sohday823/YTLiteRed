@@ -153,6 +153,24 @@ jobs:
         env:
           THEOS: ${{ github.workspace }}/theos
 
+      - name: Create roothide.h stub header
+        run: |
+          # Create a stub roothide.h header for non-roothide builds
+          # This provides the jbroot() macro needed by NSBundle+YTLite
+          cat > $THEOS/include/roothide.h << 'EOF'
+          #ifndef ROOTHIDE_H
+          #define ROOTHIDE_H
+
+          // Stub for roothide.h - provides jbroot macro for non-roothide builds
+          // When building without roothide support, jbroot just returns the path as-is
+          #define jbroot(path) (path)
+
+          #endif /* ROOTHIDE_H */
+          EOF
+          echo "Created roothide.h stub header"
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
       - name: Build YouTube Plus (YTLite) from source with custom patches
         id: build_ytplus
         run: |

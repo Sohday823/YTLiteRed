@@ -16,6 +16,8 @@
 "UnderPlayer" = "Под плеером";
 "Overlay" = "На оверлее";
 "Both" = "Оба";
+"NewButton" = "Новая кнопка";
+"NewButtonDesc" = "Добавляет новую кнопку \"Сохранить\" под видео без удаления кнопки \"Скачать\" YouTube.";
 
 "PostDownloadAction" = "Действие по окончанию загрузки";
 "PostDownloadDesc" = "Выбранное действие будет выполняться по успешному окончанию загрузки видео.";
@@ -260,6 +262,10 @@
 "SpeedByLongTap" = "Ускоренное воспроизведение";
 "SpeedByLongTapDesc" = "Позволяет ускорить воспроизведение долгим нажатием по определенной части экрана.";
 "SpeedLocation" = "Зона активации ускорения";
+"SpeedLocationLeft" = "Слева";
+"SpeedLocationRight" = "Справа";
+"SpeedLocationEither" = "Любая сторона";
+"SpeedLocationEitherDesc" = "Удерживайте левую или правую сторону экрана для ускорения воспроизведения.";
 "PinchToFullscreenShorts" = "Полноэкранный режим щипком";
 "PinchToFullscreenShortsDesc" = "Скрывает панель вкладок, тем самым отображает Shorts на весь экран.";
 "ShortsToRegular" = "Shorts как обычные видео";

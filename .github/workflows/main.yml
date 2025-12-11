@@ -159,8 +159,8 @@ jobs:
           mkdir data control
           ar -x ${{ github.workspace }}/ytplus.deb
           # Extract payload and control
-          data_tar=(data.tar.*)
-          control_tar=(control.tar.*)
+          data_tar=("data.tar."*)
+          control_tar=("control.tar."*)
           if [[ ${#data_tar[@]} -ne 1 || ${#control_tar[@]} -ne 1 ]]; then
             echo "[ytlite patch] Expected one data.tar.* and one control.tar.* but found data=${#data_tar[@]} control=${#control_tar[@]}"
             exit 1
@@ -169,7 +169,7 @@ jobs:
           control_tar="${control_tar[0]}"
           tar -xf "$data_tar" -C data
           tar -xf "$control_tar" -C control
-          PATCH_ROOT="$workdir/data" python3 ${{ github.workspace }}/patches/ytplus/update_strings.py
+          PATCH_ROOT="$workdir/data" python3 ${{ github.workspace }}/patches/ytplus/update_strings.py || exit 1
           # Repack using original compression type when possible
           data_ext="${data_tar##*.}"
           control_ext="${control_tar##*.}"

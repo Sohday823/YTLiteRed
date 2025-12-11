@@ -19,14 +19,20 @@ def main() -> int:
         sys.exit(f"[ytlite patch] No localization files found under {bundle}. Verify the YTLite bundle contents.")
 
     for strings_path in localizations:
-        with strings_path.open("rb") as handle:
-            data = plistlib.load(handle)
+        try:
+            with strings_path.open("rb") as handle:
+                data = plistlib.load(handle)
+        except Exception as exc:  # plistlib can raise ValueError on malformed data
+            sys.exit(f"[ytlite patch] Failed to read {strings_path}: {exc}")
         if "Both" in data:
             data["Both"] = "New Button"
         # Add third option label for Shorts speed activation that allows either side
         data.setdefault("LeftRightSide", "Either side")
-        with strings_path.open("wb") as handle:
-            plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)
+        try:
+            with strings_path.open("wb") as handle:
+                plistlib.dump(data, handle, fmt=plistlib.FMT_BINARY)
+        except Exception as exc:
+            sys.exit(f"[ytlite patch] Failed to write {strings_path}: {exc}")
     return 0
 
 
